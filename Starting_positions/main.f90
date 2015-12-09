@@ -58,14 +58,17 @@ program starting_positions
 	do k = 1, quanta_box(3), 1
 		do j = 1, quanta_box(2), 1
 			do i = 1, quanta_box(1), 1
-				
+				! this is then first atom in the (i,j,k)
+				! position. This position is always available
 				m_index= m_index + 1
 				if (m_index> n_molecule) exit
 				pos(1,m_index)= i*a
 				pos(2,m_index)= j*a
 				pos(3,m_index)= k*a
-
-				if (j*a+a/2 < ly .and. k*a+a/2 < lz ) then
+				! form now on the position are not always available
+				! because some of them could be out of the box
+				! so there is an extra check
+				if (j*a+a/2 < box_size(2) .and. k*a+a/2 < box_size(3) ) then
 					m_index= m_index + 1
 					if (m_index> n_molecule) exit
 					pos(1,m_index)= i*a
@@ -73,7 +76,7 @@ program starting_positions
 					pos(3,m_index)= k*a+a/2
 				end if
 
-				if (i*a+a/2 < lx .and. j*a+a/2 < ly ) then
+				if (i*a+a/2 < box_size(1) .and. j*a+a/2 < box_size(2) ) then
 					m_index= m_index + 1
 					if (m_index> n_molecule) exit
 					pos(1,m_index)= i*a+a/2
@@ -81,7 +84,7 @@ program starting_positions
 					pos(3,m_index)= k*a
 				end if 
 
-				if (i*a+a/2 < lx .and. k*a+a/2 < lz ) then
+				if (i*a+a/2 < box_size(1) .and. k*a+a/2 < box_size(3) ) then
 					m_index= m_index + 1
 					if (m_index> n_molecule) exit
 					pos(1,m_index)= i*a+a/2
