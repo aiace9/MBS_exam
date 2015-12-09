@@ -55,29 +55,39 @@ program starting_positions
 	if (err /= 0) print *, "atom_type: Allocation request denied"
 	
 	!sequential filling for an FCC lattice
-	do k = 1, 100, 1
+	do k = 1, quanta_box(3), 1
 		do j = 1, quanta_box(2), 1
 			do i = 1, quanta_box(1), 1
+				
 				m_index= m_index + 1
 				if (m_index> n_molecule) exit
 				pos(1,m_index)= i*a
 				pos(2,m_index)= j*a
 				pos(3,m_index)= k*a
-				m_index= m_index + 1
-				if (m_index> n_molecule) exit
-				pos(1,m_index)= i*a
-				pos(2,m_index)= j*a+a/2
-				pos(3,m_index)= k*a+a/2
-				m_index= m_index + 1
-				if (m_index> n_molecule) exit
-				pos(1,m_index)= i*a+a/2
-				pos(2,m_index)= j*a+a/2
-				pos(3,m_index)= k*a
-				m_index= m_index + 1
-				if (m_index> n_molecule) exit
-				pos(1,m_index)= i*a+a/2
-				pos(2,m_index)= j*a
-				pos(3,m_index)= k*a+a/2
+
+				if (j*a+a/2 < ly .and. k*a+a/2 < lz ) then
+					m_index= m_index + 1
+					if (m_index> n_molecule) exit
+					pos(1,m_index)= i*a
+					pos(2,m_index)= j*a+a/2
+					pos(3,m_index)= k*a+a/2
+				end if
+
+				if (i*a+a/2 < lx .and. j*a+a/2 < ly ) then
+					m_index= m_index + 1
+					if (m_index> n_molecule) exit
+					pos(1,m_index)= i*a+a/2
+					pos(2,m_index)= j*a+a/2
+					pos(3,m_index)= k*a
+				end if 
+
+				if (i*a+a/2 < lx .and. k*a+a/2 < lz ) then
+					m_index= m_index + 1
+					if (m_index> n_molecule) exit
+					pos(1,m_index)= i*a+a/2
+					pos(2,m_index)= j*a
+					pos(3,m_index)= k*a+a/2
+				end if 
 			end do
 			if (m_index> n_molecule) exit
 		end do
@@ -104,7 +114,7 @@ program starting_positions
   	read*, dummy 
   	atom_type = 'Ar'
 
-  	!add an energy chek
+  	!if I will have time I will add an energy check
 	
 	if ( debug )call snapshot(snap_shot_name, atom_type, pos, comment, .true.)
 	
