@@ -55,9 +55,9 @@ program starting_positions
 	if (err /= 0) print *, "atom_type: Allocation request denied"
 	
 	!sequential filling for an FCC lattice
-	do k = 1, quanta_box(3), 1
-		do j = 1, quanta_box(2), 1
-			do i = 1, quanta_box(1), 1
+	do k = 0, quanta_box(3)-1, 1
+		do j = 0, quanta_box(2)-1, 1
+			do i = 0, quanta_box(1)-1, 1
 				! this is then first atom in the (i,j,k)
 				! position. This position is always available
 				m_index= m_index + 1
@@ -96,13 +96,16 @@ program starting_positions
 		end do
 		if (m_index> n_molecule) exit
 	end do
+
+	! fix the number  of molecules
+	m_index = m_index -1
 	
-	if ( debug ) print*, 'D: molecole posizionate', m_index -1
+	if ( debug ) print*, 'D: molecole posizionate', m_index
 
 	open(unit=1, file=filename, iostat=ios, status="unknown", action="write")
 	if ( ios /= 0 ) stop "Error opening file filename"
 
-	write(unit=1, fmt=*, iostat=ios) pos
+	write(unit=1, fmt=*, iostat=ios) pos(:,1:m_index)
 	if ( ios /= 0 ) stop "Write error in file unit 1"
 	
 	close(unit=1, iostat=ios)
@@ -119,7 +122,7 @@ program starting_positions
 
   	!if I will have time I will add an energy check
 	
-	if ( debug )call snapshot(snap_shot_name, atom_type, pos, comment, .true.)
+	if ( debug )call snapshot(snap_shot_name, atom_type, pos(:,1:m_index), comment, .true.)
 	
 
 	if (allocated(pos)) deallocate(pos, stat=err)
