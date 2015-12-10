@@ -25,7 +25,7 @@ contains
 			!print*, atom_type
 		end if
 
-		if ( video ) then
+		if ( .not.video ) then
 			open(newunit=myunit, file=name, iostat=ios, status="unknown", action="write")
 			if ( ios /= 0 ) stop "Error opening file for snapshot"
 		else
