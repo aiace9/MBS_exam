@@ -152,16 +152,6 @@ program starting_positions
 	close(unit=1, iostat=ios)
 	if ( ios /= 0 ) stop "Error closing file unit 1"
 
-	!input for the snapshot
-  	print*, 'name of the snapshot:'
-  	read*, snap_shot_name
-  	print*, 'comment(optional):'
-  	read*, comment
-  	print*, 'Kind of atom, not supported'
-  	read*, dummy 
-  	atom_type = 'Ar'
-	call snapshot(snap_shot_name, atom_type, pos(:,1:m_index), comment, .false.)
-
   	! ATTENTION
   	! from now on the code works only for cubic box! 
   	! this is due to the potential routine
@@ -181,6 +171,16 @@ program starting_positions
 		print* , "extra molecule in: ", pos(:,m_index)
 	end if 
 
+	!input for the snapshot
+  	print*, 'name of the snapshot:'
+  	read*, snap_shot_name
+  	print*, 'comment(optional):'
+  	read*, comment
+  	print*, 'Kind of atom, not supported'
+  	read*, dummy 
+  	atom_type = 'Ar'
+	call snapshot(snap_shot_name, atom_type, pos(:,1:m_index), comment, .false.)
+
   	call potential(pos(:,1:m_index),m_index,e_tot_i0,box_size(1))
   	print*, "second potential evaluation:",e_tot_i0
   	print*, "delta: (is expected > 0 for high density) ", e_tot_i0 - e_tot_i1
@@ -196,7 +196,7 @@ program starting_positions
   	!print*, direction
   	open(unit=7, file="energy.dat", iostat=ios, action="write")
   	if ( ios /= 0 ) stop "Error opening file energy.dat"
-  	
+  	print*, '-----------------------'
   	write(unit=7, fmt=*) 0, e_tot_i0
   	
   	do i= 1, 10000000, 1
