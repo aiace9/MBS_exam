@@ -46,11 +46,18 @@ module interaction
     real(kind=kr), dimension(size(pos,1)) :: posij
     real(kind=kr) :: rij
     integer ::i,j
+    logical :: debug = .false.
+    direction = 0
     do i=1,nbody
       do j=1,nbody
         if( i==j ) cycle
         call PBC(pos(:,i), pos(:,j), rij, posij, side, .false.)
         direction(:,i) = direction(:,i) + 24*eps*(2.*rij**(-14)-rij**(-8))*posij
+        if (direction(1,i)>1 .or. direction(2,i)>1 .or. direction(3,i)>1 .and. debug) then
+          print *, i,j, direction(:,i)
+          print *, rij
+          print *, posij
+        endif 
       end do
     end do
   end subroutine gradient
