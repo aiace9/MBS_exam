@@ -53,7 +53,7 @@ module interaction
         if( i==j ) cycle
         call PBC(pos(:,i), pos(:,j), rij, posij, side, .false.)
         direction(:,i) = direction(:,i) + 24*eps*(2.*rij**(-14)-rij**(-8))*posij
-        if (direction(1,i)>1 .or. direction(2,i)>1 .or. direction(3,i)>1 .and. debug) then
+        if ((direction(1,i)>1 .or. direction(2,i)>1 .or. direction(3,i)>1 ).and. debug) then
           print *, i,j, direction(:,i)
           print *, rij
           print *, posij
