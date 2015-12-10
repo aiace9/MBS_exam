@@ -1,6 +1,5 @@
-fort.*
-*.ps
 *.out
 *.mod
-*.o
+*.dat
+*.txt
 *.xyz
