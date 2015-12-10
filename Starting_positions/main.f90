@@ -39,8 +39,8 @@ program starting_positions
   	real(dp) :: e_tot_i0, e_tot_i1
   	real(dp), dimension(:,:), allocatable :: direction
   	integer :: recursion = 10
-  	real(dp):: epsilon = 1.0d-8
-  	real(dp) :: lambda = 0.01
+  	real(dp):: epsilon = 1.0d-6
+  	real(dp) :: lambda = 0.0001
 
   	! random variable
   	integer :: seed1, sizer
@@ -196,27 +196,31 @@ program starting_positions
   	!print*, direction
   	open(unit=7, file="energy.dat", iostat=ios, action="write")
   	if ( ios /= 0 ) stop "Error opening file energy.dat"
-  	print*, '-----------------------'
   	write(unit=7, fmt=*) 0, e_tot_i0
-  	
-  	do i= 1, 10000000, 1
+  	i = 0
+  	do 
   		call potential(pos(:,1:m_index),m_index,e_tot_i1,box_size(1))
   		write(unit=7, fmt=*) i, e_tot_i1
-  		if (e_tot_i0 > e_tot_i1 .and. .not. abs(e_tot_i0 - e_tot_i1)>epsilon) then
+  		print* ,i, e_tot_i1
+  		i = i + 1
+  		if (e_tot_i0 > e_tot_i1 ) then
   			pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
+  			recursion = 1000000
   			e_tot_i0 = e_tot_i1
-  			recursion = 10
   		else
-  			recursion = recursion - 1
-  			if (recursion == 0) then
-  				print*, 'minimun reached'
+  			if (abs(e_tot_i0 - e_tot_i1)>epsilon .or. recursion == 0) then
+  				print*, 'minimun reached', recursion
   				exit
+  			else
+  				recursion = recursion - 1
+  				call gradient(pos(:,1:m_index),m_index,box_size(1),direction)
+  				pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
+  				e_tot_i0 = e_tot_i1
   			end if
-  			call gradient(pos(:,1:m_index),m_index,box_size(1),direction)
-  			pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
-  			e_tot_i0 = e_tot_i1
   		endif
   	end do
+
+  	print* , 'end of steepest descent algorithm'
 
   	close(unit=7, iostat=ios)
   	if ( ios /= 0 ) stop "Error closing file unit 7"
