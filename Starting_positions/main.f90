@@ -1,22 +1,24 @@
 program starting_positions
 
 	use jmol_module
+	use	interaction
 	
 	implicit none
 	integer,parameter :: dp = selected_real_kind(12)
 	character(len=9),parameter :: filename = 'start.txt'
-	
-	!lattice variables
+	print *, "this algorithm will prepare the sample"
+	! lattice variables
 	real(dp), dimension(3) :: box_size !lx,ly,lz
 	integer, dimension(3) :: quanta_box !nx,ny,nz
 	real(dp) :: a !lattice_constant
 	character(len=3) :: lattice !kind of lattice, only fcc supported
 
-	!particle parameter
+	! particle parameter
 	integer :: n_molecule, max_molecule
+	character(len=1) :: extra_molecule
 	real(dp), dimension(:,:),allocatable :: pos
 
-	!iteration index
+	! iteration index
 	integer :: i,j,k
 	integer :: m_index = 0
 
@@ -25,6 +27,12 @@ program starting_positions
   	character(len=100) :: comment,dummy
   	character(len=10) :: snap_shot_name
 
+  	! sample preparation variable
+  	real(dp) :: e_tot_i0, e_tot_i1
+
+  	! random variable
+  	integer :: seed1, sizer
+  	integer, allocatable, dimension(:) :: seed
 
 	!error flag
 	integer :: ios, err
@@ -45,9 +53,17 @@ program starting_positions
 		read*, n_molecule
 		if ( n_molecule <= quanta_box(1)*quanta_box(2)*quanta_box(3)*4 ) exit
 	end do
+
+	print*, "do you want to add an extra molecule in a random position? (y,n)"
+	read*, extra_molecule
 	
-	allocate(pos(3,n_molecule), stat=err)
-	if (err /= 0) print *, "pos: Allocation request denied"
+	if extra_molecule == "y" then
+		allocate(pos(3,n_molecule + 1), stat=err)
+		if (err /= 0) print *, "pos: Allocation request denied"
+	else
+		allocate(pos(3,n_molecule), stat=err)
+		if (err /= 0) print *, "pos: Allocation request denied"
+	end if 
 	
 	if ( debug ) print*, 'D: array allocation', size(pos, dim=1), size(pos, dim=2)
 
@@ -111,7 +127,7 @@ program starting_positions
 	close(unit=1, iostat=ios)
 	if ( ios /= 0 ) stop "Error closing file unit 1"
 
-	!input per lo snapshot
+	!input for the snapshot
   	print*, 'nome del file dello snapshot:'
   	read*, snap_shot_name
   	print*, 'commento (opzionale)'
@@ -119,10 +135,24 @@ program starting_positions
   	print*, 'Tipo di atomo che stiamo trattando, funzione non supportata'
   	read*, dummy 
   	atom_type = 'Ar'
+	call snapshot(snap_shot_name, atom_type, pos(:,1:m_index), comment, .false.)
 
-  	!if I will have time I will add an energy check
+  	! ATTENTION
+  	! from now on the code works only for cubic box! 
+  	! this is due to the potential routine
+
+  	! potential evaluation
+  	call potential(pos(:,1:m_index),m_index,e_tot_i0,box_size(1))
+  	print*, e_tot_i0
+
+  	! addition of an extra molecule if required
+  	if extra_molecule == "y" then
+		m_index = m_index + 1
+		pos(1,m_index)= 
+		pos(2,m_index)= 
+		pos(3,m_index)= 
+	end if 
 	
-	if ( debug )call snapshot(snap_shot_name, atom_type, pos(:,1:m_index), comment, .true.)
 	
 
 	if (allocated(pos)) deallocate(pos, stat=err)
