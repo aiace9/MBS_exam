@@ -28,6 +28,9 @@ program starting_positions
 
   	! sample preparation variable
   	real(dp) :: e_tot_i0, e_tot_i1
+  	real(dp), dimension(:,:), allocatable :: direction
+  	integer :: recursion = 10
+  	real(dp):: epsilon = 0.000001
 
   	! random variable
   	integer :: seed1, sizer
@@ -154,8 +157,9 @@ program starting_positions
   	! this is due to the potential routine
 
   	! potential evaluation
-  	call potential(pos(:,1:m_index),m_index,e_tot_i0,box_size(1))
-  	print*, "first potential evaluation: (F5.3)",e_tot_i0
+  	call potential(pos(:,1:m_index),m_index,e_tot_i1,box_size(1))
+  	print* , "first potential evaluation: ", e_tot_i1
+
 
   	! addition of an extra molecule if required
   	if (extra_molecule == "y") then
@@ -164,12 +168,16 @@ program starting_positions
 		pos(1,m_index)= rnd(1) * box_size(1)
 		pos(2,m_index)= rnd(2) * box_size(2)
 		pos(3,m_index)= rnd(3) * box_size(3)
-		print* , "extra molecule in:(3F5.3) ", pos(:,m_index)
+		print* , "extra molecule in: ", pos(:,m_index)
 	end if 
 
-  	call potential(pos(:,1:m_index),m_index,e_tot_i1,box_size(1))
-  	print*, "second potential evaluation: (F5.3)",e_tot_i1
-  	print*, "delta", e_tot_i1 - e_tot_i0
+  	call potential(pos(:,1:m_index),m_index,e_tot_i0,box_size(1))
+  	print*, "second potential evaluation:",e_tot_i0
+  	print*, "delta: (is expected > 0) ", e_tot_i0 - e_tot_i1
+
+  	print*, "starting steepest descent algorithm..."
+
+
 	
 
 	
