@@ -6,7 +6,6 @@ program starting_positions
 	implicit none
 	integer,parameter :: dp = selected_real_kind(12)
 	character(len=9),parameter :: filename = 'start.txt'
-	print *, "this algorithm will prepare the sample"
 	! lattice variables
 	real(dp), dimension(3) :: box_size !lx,ly,lz
 	integer, dimension(3) :: quanta_box !nx,ny,nz
@@ -19,7 +18,7 @@ program starting_positions
 	real(dp), dimension(:,:),allocatable :: pos
 
 	! iteration index
-	integer :: i,j,k
+	integer :: i,j,k,q
 	integer :: m_index = 0
 
 	!Snapshot variable
@@ -33,11 +32,13 @@ program starting_positions
   	! random variable
   	integer :: seed1, sizer
   	integer, allocatable, dimension(:) :: seed
+  	double precision, dimension(3) :: rnd(3)	
 
 	!error flag
 	integer :: ios, err
 	logical :: debug = .true.
 
+	print *, "this algorithm will prepare the sample"
 	print*, 'insert the box size (x,y,z)'
 	read*, box_size
 	print*, 'insert the lattice constant'
@@ -57,9 +58,20 @@ program starting_positions
 	print*, "do you want to add an extra molecule in a random position? (y,n)"
 	read*, extra_molecule
 	
-	if extra_molecule == "y" then
+	if (extra_molecule == "y") then
 		allocate(pos(3,n_molecule + 1), stat=err)
 		if (err /= 0) print *, "pos: Allocation request denied"
+		
+		! random settings
+		print*," seed (one integer)?"
+  		read*, seed1
+  		call random_seed(sizer)
+  		allocate(seed(sizer), stat=err)
+  		if (err /= 0) print *, "seed: Allocation request denied"
+		do q = 1, sizer, 1
+      	seed(q)= seed1 + 37 * (q-1)
+  		end do
+  		call random_seed(put=seed)
 	else
 		allocate(pos(3,n_molecule), stat=err)
 		if (err /= 0) print *, "pos: Allocation request denied"
@@ -116,10 +128,10 @@ program starting_positions
 	! fix the number  of molecules
 	m_index = m_index -1
 	
-	if ( debug ) print*, 'D: molecole posizionate', m_index
+	if ( debug ) print*, 'D: real number of molecules', m_index
 
 	open(unit=1, file=filename, iostat=ios, status="unknown", action="write")
-	if ( ios /= 0 ) stop "Error opening file filename"
+	if ( ios /= 0 ) stop "Error opening file" filename
 
 	write(unit=1, fmt=*, iostat=ios) pos(:,1:m_index)
 	if ( ios /= 0 ) stop "Write error in file unit 1"
@@ -128,11 +140,11 @@ program starting_positions
 	if ( ios /= 0 ) stop "Error closing file unit 1"
 
 	!input for the snapshot
-  	print*, 'nome del file dello snapshot:'
+  	print*, 'name of the snapshot:'
   	read*, snap_shot_name
-  	print*, 'commento (opzionale)'
+  	print*, 'comment(optional):'
   	read*, comment
-  	print*, 'Tipo di atomo che stiamo trattando, funzione non supportata'
+  	print*, 'Kind of atom, not supported'
   	read*, dummy 
   	atom_type = 'Ar'
 	call snapshot(snap_shot_name, atom_type, pos(:,1:m_index), comment, .false.)
@@ -143,16 +155,23 @@ program starting_positions
 
   	! potential evaluation
   	call potential(pos(:,1:m_index),m_index,e_tot_i0,box_size(1))
-  	print*, e_tot_i0
+  	print*, "first potential evaluation: ",e_tot_i0
 
   	! addition of an extra molecule if required
-  	if extra_molecule == "y" then
+  	if (extra_molecule == "y") then
 		m_index = m_index + 1
-		pos(1,m_index)= 
-		pos(2,m_index)= 
-		pos(3,m_index)= 
+		call random_number(rnd)
+		pos(1,m_index)= rnd(1) * box_size(1)
+		pos(2,m_index)= rnd(2) * box_size(2)
+		pos(3,m_index)= rnd(3) * box_size(3)
+		print* , "extra molecule in: ", pos(:,m_index)
 	end if 
+
+  	call potential(pos(:,1:m_index),m_index,e_tot_i1,box_size(1))
+  	print*, "second potential evaluation: ",e_tot_i1
+  	print*, "delta", e_tot_i1 - e_tot_i0
 	
+
 	
 
 	if (allocated(pos)) deallocate(pos, stat=err)
