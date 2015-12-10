@@ -1,4 +1,13 @@
 program starting_positions
+! ________________________________
+!< Debug is human, de-fix divine. >
+! --------------------------------
+!        \   ^__^
+!         \  (oo)\_______
+!            (__)\       )\/\
+!                ||----w |
+!                ||     ||
+	
 
 	use jmol_module
 	use	interaction
@@ -30,7 +39,8 @@ program starting_positions
   	real(dp) :: e_tot_i0, e_tot_i1
   	real(dp), dimension(:,:), allocatable :: direction
   	integer :: recursion = 10
-  	real(dp):: epsilon = 0.000001
+  	real(dp):: epsilon = 1.0d-8
+  	real(dp) :: lambda = 0.01
 
   	! random variable
   	integer :: seed1, sizer
@@ -173,14 +183,49 @@ program starting_positions
 
   	call potential(pos(:,1:m_index),m_index,e_tot_i0,box_size(1))
   	print*, "second potential evaluation:",e_tot_i0
-  	print*, "delta: (is expected > 0) ", e_tot_i0 - e_tot_i1
+  	print*, "delta: (is expected > 0 for high density) ", e_tot_i0 - e_tot_i1
 
+  	! start of the steepest descent
   	print*, "starting steepest descent algorithm..."
 
+  	allocate(direction(3,m_index), stat=err)
+  	if (err /= 0) print *, "direction: Allocation request denied"
+  	
+  	call gradient(pos(:,1:m_index),m_index,box_size(1),direction)
+  	pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
+  	!print*, direction
+  	open(unit=7, file="energy.dat", iostat=ios, action="write")
+  	if ( ios /= 0 ) stop "Error opening file energy.dat"
+  	
+  	write(unit=7, fmt=*) 0, e_tot_i0
+  	
+  	do i= 1, 10000000, 1
+  		call potential(pos(:,1:m_index),m_index,e_tot_i1,box_size(1))
+  		write(unit=7, fmt=*) i, e_tot_i1
+  		if (e_tot_i0 > e_tot_i1 .and. .not. abs(e_tot_i0 - e_tot_i1)>epsilon) then
+  			pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
+  			e_tot_i0 = e_tot_i1
+  			recursion = 10
+  		else
+  			recursion = recursion - 1
+  			if (recursion == 0) then
+  				print*, 'minimun reached'
+  				exit
+  			end if
+  			call gradient(pos(:,1:m_index),m_index,box_size(1),direction)
+  			pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
+  			e_tot_i0 = e_tot_i1
+  		endif
+  	end do
 
+  	close(unit=7, iostat=ios)
+  	if ( ios /= 0 ) stop "Error closing file unit 7"
+  	
 	
 
 	
+  	if (allocated(direction)) deallocate(direction, stat=err)
+  	if (err /= 0) print *, "direction: Deallocation request denied"
 
 	if (allocated(pos)) deallocate(pos, stat=err)
 	if (err /= 0) print *, "pos: Deallocation request denied"
