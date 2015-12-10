@@ -38,9 +38,10 @@ module interaction
     upot = upot/2
   end subroutine potential
 
-  subroutine gradient(pos,nbody,direction)
+  subroutine gradient(pos,nbody,side, direction)
     real(kr), intent(in), dimension(:,:) :: pos
     integer, intent(in) :: nbody
+    real(kind=kr), intent(in) :: side
     real(kr), intent(out), dimension(:,:) :: direction
     real(kind=kr), dimension(size(pos,1)) :: posij
     real(kind=kr) :: rij
