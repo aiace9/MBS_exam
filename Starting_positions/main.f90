@@ -131,7 +131,7 @@ program starting_positions
 	if ( debug ) print*, 'D: real number of molecules', m_index
 
 	open(unit=1, file=filename, iostat=ios, status="unknown", action="write")
-	if ( ios /= 0 ) stop "Error opening file" filename
+	if ( ios /= 0 ) stop "Error opening file"
 
 	write(unit=1, fmt=*, iostat=ios) pos(:,1:m_index)
 	if ( ios /= 0 ) stop "Write error in file unit 1"
@@ -155,7 +155,7 @@ program starting_positions
 
   	! potential evaluation
   	call potential(pos(:,1:m_index),m_index,e_tot_i0,box_size(1))
-  	print*, "first potential evaluation: ",e_tot_i0
+  	print*, "first potential evaluation: (F5.3)",e_tot_i0
 
   	! addition of an extra molecule if required
   	if (extra_molecule == "y") then
@@ -164,11 +164,11 @@ program starting_positions
 		pos(1,m_index)= rnd(1) * box_size(1)
 		pos(2,m_index)= rnd(2) * box_size(2)
 		pos(3,m_index)= rnd(3) * box_size(3)
-		print* , "extra molecule in: ", pos(:,m_index)
+		print* , "extra molecule in:(3F5.3) ", pos(:,m_index)
 	end if 
 
   	call potential(pos(:,1:m_index),m_index,e_tot_i1,box_size(1))
-  	print*, "second potential evaluation: ",e_tot_i1
+  	print*, "second potential evaluation: (F5.3)",e_tot_i1
   	print*, "delta", e_tot_i1 - e_tot_i0
 	
 
