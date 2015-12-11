@@ -140,19 +140,9 @@ program starting_positions
 
 	! fix the number  of molecules
 	m_index = m_index -1
-	
-	if ( debug ) print*, 'D: real number of molecules', m_index
+	print*, 'number of molecules:', m_index
 
-	open(unit=1, file=filename, iostat=ios, status="unknown", action="write")
-	if ( ios /= 0 ) stop "Error opening file"
-
-	write(unit=1, fmt=*, iostat=ios) pos(:,1:m_index)
-	if ( ios /= 0 ) stop "Write error in file unit 1"
-	
-	close(unit=1, iostat=ios)
-	if ( ios /= 0 ) stop "Error closing file unit 1"
-
-  	! ATTENTION
+	! ATTENTION
   	! from now on the code works only for cubic box! 
   	! this is due to the potential routine
 
@@ -160,8 +150,7 @@ program starting_positions
   	call potential(pos(:,1:m_index),m_index,e_tot_i1,box_size(1))
   	print* , "first potential evaluation: ", e_tot_i1
 
-
-  	! addition of an extra molecule if required
+	! addition of an extra molecule if required
   	if (extra_molecule == "y") then
 		m_index = m_index + 1
 		call random_number(rnd)
@@ -169,7 +158,7 @@ program starting_positions
 		pos(2,m_index)= rnd(2) * box_size(2)
 		pos(3,m_index)= rnd(3) * box_size(3)
 		print* , "extra molecule in: ", pos(:,m_index)
-	end if 
+	end if
 
 	!input for the snapshot
   	print*, 'name of the snapshot:'
@@ -181,9 +170,10 @@ program starting_positions
   	atom_type = 'Ar'
 	call snapshot(snap_shot_name, atom_type, pos(:,1:m_index), comment, .false.)
 
+	! second potential evaluation
   	call potential(pos(:,1:m_index),m_index,e_tot_i0,box_size(1))
   	print*, "second potential evaluation:",e_tot_i0
-  	print*, "delta: (is expected > 0 for high density) ", e_tot_i0 - e_tot_i1
+  	print*, "delta:", e_tot_i0 - e_tot_i1
 
   	! start of the steepest descent
   	print*, "starting steepest descent algorithm..."
@@ -193,19 +183,20 @@ program starting_positions
   	
   	call gradient(pos(:,1:m_index),m_index,box_size(1),direction)
   	pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
-  	!print*, direction
+  	
   	open(unit=7, file="energy.dat", iostat=ios, action="write")
   	if ( ios /= 0 ) stop "Error opening file energy.dat"
-  	write(unit=7, fmt=*) 0, e_tot_i0
+  	
   	i = 0
+  	write(unit=7, fmt=*) i, e_tot_i0
   	do 
+  		i = i + 1
   		call potential(pos(:,1:m_index),m_index,e_tot_i1,box_size(1))
   		write(unit=7, fmt=*) i, e_tot_i1
-  		print* ,i, e_tot_i1
-  		i = i + 1
+  		if (debug) print* ,i, e_tot_i1
   		if (e_tot_i0 > e_tot_i1 ) then
   			pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
-  			recursion = 1000000
+  			recursion = 10000
   			e_tot_i0 = e_tot_i1
   		else
   			if (abs(e_tot_i0 - e_tot_i1)>epsilon .or. recursion == 0) then
@@ -225,9 +216,17 @@ program starting_positions
   	close(unit=7, iostat=ios)
   	if ( ios /= 0 ) stop "Error closing file unit 7"
   	
-	
+	! save the sample data
+	open(unit=1, file=filename, iostat=ios, status="unknown", action="write")
+	if ( ios /= 0 ) stop "Error opening file"
 
+	write(unit=1, fmt=*, iostat=ios) pos(:,1:m_index)
+	if ( ios /= 0 ) stop "Write error in file unit 1"
 	
+	close(unit=1, iostat=ios)
+	if ( ios /= 0 ) stop "Error closing file unit 1"
+
+	! deallocations
   	if (allocated(direction)) deallocate(direction, stat=err)
   	if (err /= 0) print *, "direction: Deallocation request denied"
 
