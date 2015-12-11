@@ -9,37 +9,41 @@ program main
   implicit none
   integer,parameter::kr=selected_real_kind(12)
   
-  integer :: nstep,it,nbody,i,j,istat
-  
-  real(kind=kr) :: dt,mvel,mepot,massa,alfa=1,vmax,side,vol
-  real(kind=kr),dimension(:),allocatable :: mekin,e_tot
-  real(kind=kr),dimension(:,:),allocatable :: pos
+  !---variabili per il caricamento file--!
+  character(100) :: file
+  integer :: nbody
+  real(kind=kr) :: massa, side
+  !-variabili per l'evoluzione temporale-!
+  integer :: nstep
+  real(kind=kr) :: dt,vmax
+  real(kind=kr) :: mvel,mepot,mekin
   real(kind=kr),dimension(:),allocatable :: velcm
+  real(kind=kr),dimension(:,:),allocatable :: pos
   real(kind=kr),dimension(:,:),allocatable :: ekin,vel,f
-
-  ! mie variabli
-
   !----------variabili per lo snapshot---!
   character(len=3), dimension(:),allocatable :: atom_type
   character(len=100) :: comment,dummy
   character(len=100) :: snap_shot_name
   !----------variabili per anderson------!
   logical :: anderson_evol
-  real(kind=kr) :: T_bath,beta,rnd,T_ist
+  real(kind=kr) :: T_bath, beta, rnd,T_ist
   real(kind=kr) :: anderson_freq
   integer :: anderson_step
   !----------flag per la dinamica--------!
   logical :: dyn
   !----------flag di errore--------------!
-  integer :: err, ios
+  integer :: err, ios, istat
   logical :: debug = .true.
-  character(100) :: file
+
   !----------pressure--------------------!
   real :: Pist
   !----------g(r)------------------------!
   real(kind=kr) :: rij
   real(kind=kr) :: delta
   real(kind=kr), dimension(3) :: posij
+
+  !-------indici-------!
+  integer :: it, i, j
   
   ! input utente
   
@@ -56,7 +60,7 @@ program main
   
   ! set di allocazioni
   ! allocate(e_tot(nbody)) ! this variable seem unused
-  allocate(mekin(nbody))
+  !allocate(mekin(nbody))
   allocate(vel(3,nbody))
   allocate(ekin(3,nbody))
   allocate(pos(3,nbody))
@@ -100,7 +104,7 @@ program main
   read*, dummy 
   atom_type = 'Ar'
 
-  !------caricamento delle coordinate iniziali ------!
+  !------caricamento delle coordinate------!
   print*, "nome del file con coordinate"
   read*, file
   
@@ -114,7 +118,7 @@ program main
   if ( debug ) print*, 'D - coordinate caricate con successo'
 
 
-  !--------caricamento della configurazione iniziale delle velocità o creazione della stessa---!
+  !--------caricamento o creazione delle velocità---!
   if (dyn) then
     print*, "nome del file con velocità, (0 se il file non esiste)"
       read*, file
@@ -157,7 +161,6 @@ program main
   
   call interazione(pos,nbody,f,mepot, side)
   if ( debug ) print*, 'D - prima chiamata routine interazione, successo'
-  
   do it = 1,nstep
     if (dyn) then
       !-----primo step pos vel------!
@@ -172,59 +175,76 @@ program main
       !----calcolo l'interazione fra le particelle----!
       call interazione(pos,nbody,f,mepot, side)
       
-      if(anderson_evol .eqv. .true.) then
-        !----implementazione di anderson-----!
-        !----beta è 1/T attenzione alle formule ------!
-        call anderson_integration(vel,f,massa,beta,anderson_freq,dt,T_ist)
-        do i=1,nbody
-          ekin(:,i) = 0.5 * massa * (vel(:,i))**2
-        end do
-      else
-        !---secondo setp pos vel senza anderson--------!
-        do i=1,nbody
-          vel(:,i) = vel(:,i) + 0.5 * dt * f(:,i)/massa
-          ekin(:,i) = 0.5 * massa * (vel(:,i))**2
-        end do
-      
-      endif
+      do i=1,nbody
+        vel(:,i) = vel(:,i) + 0.5 * dt * f(:,i)/massa
+        ekin(:,i) = 0.5 * massa * (vel(:,i))**2
+      end do
       
       mekin = sum(ekin)
       
       !----salvataggio dati-------!
       if (mod(it,50) == 0) then
         write(unit=1,fmt=*)it,it*dt,pos,vel
-        write(unit=2,fmt=*)it,mekin(1),mepot,mekin(1)+mepot
-        write(unit=3, fmt=*)it, it*dt, T_ist
+        write(unit=2,fmt=*)it,mekin,mepot,mekin+mepot
       endif
       
       !-----percentuale----!
       if( mod(it,nstep/10) == 0) print*, floor(it/(nstep*1.0)*100)
 
     else
-      !---- no dynamics, implemented for debug purpose-----!
-      ! here we will try to evaluate gr for the sample
-      delta = 0.001
-      call init_gr(side,delta)
-      do i=1,nbody
-        do j=1,nbody
-          if( i==j ) cycle
-          call PBC(pos(:,i), pos(:,j), rij, posij, side, .false.)
-          print *, rij
-          call push_gr(rij)
-        end do
+      !---- not pure dynamic evolution, thermalization of the sample-----!
+      !-----primo step pos vel------!
+      do i = 1,nbody
+        pos(:,i) = pos(:,i) + vel(:,i) * dt + 0.5* f(:,i)/massa * dt**2
+        vel(:,i) = vel(:,i) + 0.5 * dt * f(:,i)/massa
       end do
-      call save_data_gr(nbody/side**3, nbody)
-      exit
-    end if
 
+      !-----riposiziono le particelle all'interno della scatola----!
+      call scatola(pos,side)
+      
+      !----calcolo l'interazione fra le particelle----!
+      call interazione(pos,nbody,f,mepot, side)
+      
+      !----implementazione di anderson-----!
+      !----beta è 1/T attenzione alle formule ------!
+      call anderson_integration(vel,f,massa,beta,anderson_freq,dt,T_ist)
+      
+      do i=1,nbody
+        ekin(:,i) = 0.5 * massa * (vel(:,i))**2
+      end do
+      mekin = sum(ekin)
+      
+      !----salvataggio dati-------!
+      if (mod(it,50) == 0) then
+        write(unit=1,fmt=*)it,it*dt,pos,vel
+        write(unit=2,fmt=*)it,mekin,mepot,mekin+mepot
+        write(unit=3,fmt=*)it, it*dt, T_ist
+      endif
+      !-----percentuale----!
+      if( mod(it,nstep/10) == 0) print*, floor(it/(nstep*1.0)*100)
+
+    end if
   !-----sanapshot per il video-----!
-  !call snapshot(snap_shot_name, atom_type, pos, comment, .true.)
+  if (nstep < 1000) call snapshot(snap_shot_name, atom_type, pos, comment, .true.)
   end do
 
-  if (.not. dyn) then
-    
+  ! evaluation of g(r)
+  if (.true.) then
+    delta = 0.001
+    call init_gr(side,delta)
+    do i=1,nbody
+      do j=1,nbody
+        if( i==j ) cycle
+        call PBC(pos(:,i), pos(:,j), rij, posij, side, .false.)
+        print *, rij
+        call push_gr(rij)
+      end do
+    end do
+    call save_data_gr(nbody/side**3, nbody)
+  end if
 
-
+  !snapshot situazione finale
+  !call snapshot(snap_shot_name, atom_type, pos, comment, .false.)
 
   !-----chiusura di tutti i file aperti------!
   close(unit=1, iostat=ios)
@@ -235,21 +255,10 @@ program main
 
   close(unit=3, iostat=ios)
   if ( ios /= 0 ) stop "Error closing file unit 3"
-  
-  
-  
-
-
-  !salviamo le distanze fra le particelle
-  !do i=1,nbody
-  !  do j=i+1,nbody
-  !    write(unit=3,fmt=*) i,j,sqrt(dot_product(pos(:,i)-pos(:,j),pos(:,i)-pos(:,j)))
-  !  end do
-  !end do
 
   !-------salviamo le posizioni finali per un eventuale nuovo start------!
-  open(unit=4, file='pos.dat', iostat=ios,  status="unknown", action="write")
-  if ( ios /= 0 ) stop "Error opening file pos.dat"
+  open(unit=4, file='sample2_pos.dat', iostat=ios,  status="unknown", action="write")
+  if ( ios /= 0 ) stop "Error opening file sample2_pos.dat"
     
   write(unit=4,fmt=*) pos
 
@@ -257,18 +266,14 @@ program main
   if ( ios /= 0 ) stop "Error closing file unit 4"
 
   !-------salviamo le velocità finali per un eventuale nuovo start-------!
-  open(unit=4, file='vel.dat', iostat=ios,  status="unknown", action="write")
-  if ( ios /= 0 ) stop "Error opening file vel.dat"
+  open(unit=4, file='sample2_vel.dat', iostat=ios,  status="unknown", action="write")
+  if ( ios /= 0 ) stop "Error opening file sample2_vel.dat"
   
   write(unit=4,fmt=*) vel
 
   close(unit=4, iostat=ios)
   if ( ios /= 0 ) stop "Error closing file unit 4"
   
-  
-  !snapshot situazione finale
-  !call snapshot(snap_shot_name, atom_type, pos, comment, .false.)
-
   !mie deallocazioni
   if (allocated(atom_type)) deallocate(atom_type, stat=err)
   if (err /= 0) print *, "atom_type: Deallocation request denied"
