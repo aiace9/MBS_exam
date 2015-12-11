@@ -4,6 +4,7 @@ program main
   use jmol_module
   use anderson_module
   use Box
+  use gr_istogram_module
 
   implicit none
   integer,parameter::kr=selected_real_kind(12)
@@ -35,6 +36,10 @@ program main
   character(100) :: file
   !----------pressure--------------------!
   real :: Pist
+  !----------g(r)------------------------!
+  real(kind=kr) :: rij
+  real(kind=kr) :: delta
+  real(kind=kr), dimension(3) :: posij
   
   ! input utente
   
@@ -50,7 +55,7 @@ program main
   read*, nbody
   
   ! set di allocazioni
-  allocate(e_tot(nbody)) ! this variable seem unused
+  ! allocate(e_tot(nbody)) ! this variable seem unused
   allocate(mekin(nbody))
   allocate(vel(3,nbody))
   allocate(ekin(3,nbody))
@@ -150,8 +155,9 @@ program main
 
   !-----------algoritmo principale-----------!
   
-  call interazione(pos,nbody,f,mepot, side,Pist)
+  call interazione(pos,nbody,f,mepot, side)
   if ( debug ) print*, 'D - prima chiamata routine interazione, successo'
+  
   do it = 1,nstep
     if (dyn) then
       !-----primo step pos vel------!
@@ -164,16 +170,15 @@ program main
       call scatola(pos,side)
       
       !----calcolo l'interazione fra le particelle----!
-      call interazione(pos,nbody,f,mepot, side,Pist)
+      call interazione(pos,nbody,f,mepot, side)
       
-      !----implementazione di anderson-----!
       if(anderson_evol .eqv. .true.) then
+        !----implementazione di anderson-----!
         !----beta è 1/T attenzione alle formule ------!
         call anderson_integration(vel,f,massa,beta,anderson_freq,dt,T_ist)
         do i=1,nbody
           ekin(:,i) = 0.5 * massa * (vel(:,i))**2
         end do
-
       else
         !---secondo setp pos vel senza anderson--------!
         do i=1,nbody
@@ -182,13 +187,6 @@ program main
         end do
       
       endif
-
-      !-----calcolo della pressione----!
-      !non rompere le balle su ro beta
-      !è quasi uguale
-      Pist = Pist/(3 * vol)+ro/beta
-      Psum = Psum + Pist
-      Psum2 = Psum2 +Pist**2
       
       mekin = sum(ekin)
       
@@ -196,30 +194,37 @@ program main
       if (mod(it,50) == 0) then
         write(unit=1,fmt=*)it,it*dt,pos,vel
         write(unit=2,fmt=*)it,mekin(1),mepot,mekin(1)+mepot
-        write(unit=3, fmt=*)it, it*dt, T_ist , &
-                              Pist ,Psum/it, sqrt(Psum2/it - (psum /it)**2) !/sqrt(it)
+        write(unit=3, fmt=*)it, it*dt, T_ist
       endif
-      !----implementazione anneling-----!
-      if (anneal) vel=alfa*vel
-
-      !-----percentuale----!
       
+      !-----percentuale----!
       if( mod(it,nstep/10) == 0) print*, floor(it/(nstep*1.0)*100)
 
     else
-      !---- cosa a caso che non verrà mai usata-----!
-      do i = 1,nbody
-        pos(:,i) = pos(:,i) + f(:,i)/massa * dt**2
+      !---- no dynamics, implemented for debug purpose-----!
+      ! here we will try to evaluate gr for the sample
+      delta = 0.001
+      call init_gr(side,delta)
+      do i=1,nbody
+        do j=1,nbody
+          if( i==j ) cycle
+          call PBC(pos(:,i), pos(:,j), rij, posij, side, .false.)
+          print *, rij
+          call push_gr(rij)
+        end do
       end do
-      
-      call interazione(pos,nbody,f,mepot, side)
+      call save_data_gr(nbody/side**3, nbody)
+      exit
     end if
 
   !-----sanapshot per il video-----!
-  call snapshot(snap_shot_name, atom_type, pos, comment, .true.)
-
-
+  !call snapshot(snap_shot_name, atom_type, pos, comment, .true.)
   end do
+
+  if (.not. dyn) then
+    
+
+
 
   !-----chiusura di tutti i file aperti------!
   close(unit=1, iostat=ios)
@@ -263,14 +268,6 @@ program main
   
   !snapshot situazione finale
   !call snapshot(snap_shot_name, atom_type, pos, comment, .false.)
-
-  !scriviamo i dati finali ottenuti interessanti
-  if ( anneal ) then
-    print*, 'energia finale:'
-    print*, 'potenziale:', mepot
-    print*, 'cinetica:', mekin(1)
-    print*, 'totale:', abs(mekin(1)+mepot)
-  end if
 
   !mie deallocazioni
   if (allocated(atom_type)) deallocate(atom_type, stat=err)
