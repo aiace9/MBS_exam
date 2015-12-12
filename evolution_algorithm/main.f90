@@ -20,6 +20,8 @@ program main
   real(kind=kr),dimension(:),allocatable :: velcm
   real(kind=kr),dimension(:,:),allocatable :: pos, pos_old, pos_new
   real(kind=kr),dimension(:,:),allocatable :: ekin,vel,f
+  real(kind=kr),dimension(3)::D
+  real(kind=kr) :: dummy_real
   !----------variabili per lo snapshot---!
   character(len=3), dimension(:),allocatable :: atom_type
   character(len=100) :: comment,dummy
@@ -34,7 +36,6 @@ program main
   !----------flag di errore--------------!
   integer :: err, ios, istat
   logical :: debug = .true.
-
   !----------pressure--------------------!
   real :: Pist
   !----------g(r)------------------------!
@@ -182,19 +183,25 @@ program main
       end do
       
       !---calcolo velocità ed energia----!
-      !---al tempo t     
+      !---al tempo t 
+      T_ist = 0    
       do i=1,nbody
-        vel(:,i) = (pos_new(:,i) - pos_old(:,i) )/ (2 * dt)
+        call PBC(pos_new(:,i), pos_old(:,i), dummy_real, D, side, .false.)
+        vel(:,i) = (D )/ (2 * dt)
         ekin(:,i) = 0.5 * massa * (vel(:,i))**2
+        T_ist = T_ist + dot_product(vel(:,i),vel(:,i))
       end do
+      T_ist = (T_ist/(3.0*size(vel, dim=2)))* massa
+
       
       mekin = sum(ekin)
       
       !----salvataggio dati-------!
       !----al tempo t
       if (mod(it,50) == 0) then
-        write(unit=1,fmt=*)it,it*dt,pos,vel
+        !write(unit=1,fmt=*)it,it*dt,pos,vel
         write(unit=2,fmt=*)it,mekin,mepot,mekin+mepot
+        write(unit=3,fmt=*)it, it*dt, T_ist
       endif
       
       pos_old = pos       
@@ -202,7 +209,6 @@ program main
 
       !-----riposiziono le particelle all'interno della scatola----!
       call scatola(pos,side)
-
 
       !-----percentuale----!
       if( mod(it,nstep/10) == 0) print*, floor(it/(nstep*1.0)*100)
@@ -252,7 +258,7 @@ program main
       do j=1,nbody
         if( i==j ) cycle
         call PBC(pos(:,i), pos(:,j), rij, posij, side, .false.)
-        print *, rij
+        !print *, rij
         call push_gr(rij)
       end do
     end do
