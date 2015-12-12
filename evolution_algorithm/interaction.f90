@@ -44,7 +44,7 @@ module interaction
   end subroutine interazione
 
   subroutine interazione1(pos,nbody,f,upot, side)
-    !questa routine simula uno spazio infinito
+    ! questa routine simula uno spazio infinito
     real(kind=kr), intent(in), dimension(:,:) :: pos
     real(kind=kr), intent(in)::side
     integer, intent(in) :: nbody
