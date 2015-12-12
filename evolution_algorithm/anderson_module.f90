@@ -14,7 +14,7 @@ contains
 		real(kr), intent(out) :: tempa
 		real(kr), dimension(:,:), intent(in) :: f
 		real(kr), intent(in) :: beta, mass, nu, dt
-		!variabili interne
+		! variabili interne
 		real(kr) :: sigma
 		real(kr) :: rnd
 		integer :: i,j
@@ -23,7 +23,7 @@ contains
 		integer :: coll = 0
 		integer, save :: coll_tot, chiamate
 
-		!tempa è in kelvin * kb
+		! tempa è in kelvin * kb
 		tempa = 0
 		coll = 0
 		do i = 1, size(vel, dim=2), 1
@@ -60,7 +60,9 @@ contains
 	end subroutine anderson_integration
 
     subroutine gasdev(rnd)
-    ! sigma =1
+    ! this algorithm generate a gaussian distribution
+    ! with:
+    ! sigma = 1
     ! mu = 0
     real(kind=kr), INTENT(OUT) :: rnd
     real(kind=kr) :: r2,x,y
