@@ -230,7 +230,7 @@ program main
 
   ! evaluation of g(r)
   if (.true.) then
-    delta = 0.001
+    delta = 0.01
     call init_gr(side,delta)
     do i=1,nbody
       do j=1,nbody
