@@ -32,13 +32,13 @@ contains
 		hist = 0		
 	end subroutine init_gr
 
-	subroutine push_gr(x, side)
+	subroutine push_gr(x)
 		! this routine add a point in to the histogram
 		! be careful x should be the distance rij between
 		! the particle
 		real(kind = dp), intent(in) :: x
 		integer :: ibin
-		logical :: debug = .true.
+		logical :: debug = .false.
 
 		ibin = floor ( x / step) + 1
 		! I must do a check but I already took half of the box
@@ -50,35 +50,39 @@ contains
 	    if ( debug ) print*, 'D: hist(ibin)', hist(ibin)
 	end subroutine push_gr
 
-	subroutine save_data_gr(rho)
+	subroutine save_data_gr(rho, npart)
+		! this routine normalize the data and save them.
 		real(kind = dp), intent(in):: rho
+		integer, intent(in):: npart
 		integer :: myunit, ibin, points
 		integer :: ios, err
-		logical :: debug = .true.
+		logical :: debug = .false.
 		real(kind = dp) :: r,vb,nid
 
 		open(newunit=myunit, file='ist.dat', iostat=ios, status="unknown", action="write")
 		if ( ios /= 0 ) stop "Error opening file ist.dat"
 
-		points =  sum(hist, dim=1)! compute the total points
-		if ( debug ) print*, 'D: number of points', points
-		if ( debug ) print*, 'D: number of bins', nbin
-		if ( debug ) print*, 'D: number of hist', hist
+		! compute the total points
+		points =  sum(hist, dim=1)
+
+		if ( debug ) then
+			print*, 'D: number of points', points
+			print*, 'D: number of bins', nbin
+			print*, 'D: number of hist', hist
+		end if
 
 		do ibin= 1 ,nbin
 			if ( debug ) print*, 'D: saving bin', ibin, hist(ibin)
 			r = (ibin-0.5)*step - a
 			vb = (4.0/3.0)*pi*((nbin)**3-(nbin-1)**3)*step**3
 			nid = vb * rho
-    		write(unit=myunit,fmt=*) r,hist(ibin)/float(points)/step
+    		write(unit=myunit,fmt=*) r,hist(ibin)/(float(points)*npart*nid)
   		end do
 
 		if ( debug ) print*, 'D: all bin saved'
 	
 		if (allocated(hist)) deallocate(hist, stat=err)
 		if (err /= 0) print *, "hist: Deallocation request denied"
-
-		if ( debug ) print*, 'D: deallocation ok'
 
 		close(unit=myunit, iostat=ios)
 		if ( ios /= 0 ) stop "Error closing file ist.dat"
