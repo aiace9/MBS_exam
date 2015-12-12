@@ -18,7 +18,7 @@ program main
   real(kind=kr) :: dt,vmax
   real(kind=kr) :: mvel,mepot,mekin
   real(kind=kr),dimension(:),allocatable :: velcm
-  real(kind=kr),dimension(:,:),allocatable :: pos
+  real(kind=kr),dimension(:,:),allocatable :: pos, pos_old, pos_new
   real(kind=kr),dimension(:,:),allocatable :: ekin,vel,f
   !----------variabili per lo snapshot---!
   character(len=3), dimension(:),allocatable :: atom_type
@@ -59,11 +59,11 @@ program main
   read*, nbody
   
   ! set di allocazioni
-  ! allocate(e_tot(nbody)) ! this variable seem unused
-  !allocate(mekin(nbody))
   allocate(vel(3,nbody))
   allocate(ekin(3,nbody))
   allocate(pos(3,nbody))
+  allocate(pos_old(3,nbody))
+  allocate(pos_new(3,nbody))
   allocate(f(3,nbody))
   allocate(velcm(3))
 
@@ -72,6 +72,8 @@ program main
   if (err /= 0) print *, "atom_type: Allocation request denied"
   
   pos = 0
+  pos_old = 0
+  pos_new = 0
   atom_type = ''
 
   !ulteriori input
@@ -158,36 +160,50 @@ program main
   if ( ios /= 0 ) stop "Error opening file T.dat"
 
   !-----------algoritmo principale-----------!
-  
+  !generazione del porimo step senza verlet
   call interazione(pos,nbody,f,mepot, side)
+  pos_old = pos
+  do i = 1,nbody
+    pos(:,i) = pos(:,i) + vel(:,i) * dt + 0.5* f(:,i)/massa * dt**2
+    vel(:,i) = vel(:,i) + dt * f(:,i)/massa
+  end do
+  
+  
   if ( debug ) print*, 'D - prima chiamata routine interazione, successo'
   do it = 1,nstep
     if (dyn) then
-      !-----primo step pos vel------!
-      do i = 1,nbody
-        !pos(:,i) = pos(:,i) + vel(:,i) * dt + 0.5* f(:,i)/massa * dt**2
-        !vel(:,i) = vel(:,i) + 0.5 * dt * f(:,i)/massa
-      end do
-
-      !-----riposiziono le particelle all'interno della scatola----!
-      call scatola(pos,side)
-      
       !----calcolo l'interazione fra le particelle----!
       call interazione(pos,nbody,f,mepot, side)
       
+      !-----aggiorno le posizioni ------!
+      !-----pos_new => pos t+1
+      do i = 1,nbody
+        pos_new(:,i) = 2 * pos(:,i) - pos_old(:,i)+ dt**2 * f(:,i) / massa
+      end do
+      
+      !---calcolo velocità ed energia----!
+      !---al tempo t     
       do i=1,nbody
-        vel(:,i) = vel(:,i) + 0.5 * dt * f(:,i)/massa
+        vel(:,i) = (pos_new(:,i) - pos_old(:,i) )/ (2 * dt)
         ekin(:,i) = 0.5 * massa * (vel(:,i))**2
       end do
       
       mekin = sum(ekin)
       
       !----salvataggio dati-------!
+      !----al tempo t
       if (mod(it,50) == 0) then
         write(unit=1,fmt=*)it,it*dt,pos,vel
         write(unit=2,fmt=*)it,mekin,mepot,mekin+mepot
       endif
       
+      pos_old = pos       
+      pos = pos_new
+
+      !-----riposiziono le particelle all'interno della scatola----!
+      call scatola(pos,side)
+
+
       !-----percentuale----!
       if( mod(it,nstep/10) == 0) print*, floor(it/(nstep*1.0)*100)
 
