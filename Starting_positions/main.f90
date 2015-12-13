@@ -14,7 +14,7 @@ program starting_positions
 	
 	implicit none
 	integer,parameter :: dp = selected_real_kind(12)
-	character(len=9),parameter :: filename = 'sample.txt'
+	character(len=10),parameter :: filename = 'sample.txt'
 	! lattice variables
 	real(dp), dimension(3) :: box_size !lx,ly,lz
 	integer, dimension(3) :: quanta_box !nx,ny,nz
@@ -199,26 +199,25 @@ program starting_positions
   			print* ,i, e_tot_i1
   			call snapshot(snap_shot_name, atom_type, pos(:,1:m_index), comment, .true.)
   		endif
-  		if (e_tot_i0 > e_tot_i1 ) then
+  		if (e_tot_i0 > e_tot_i1 .or. recursion == 0) then
+  			if (abs(e_tot_i0 - e_tot_i1)<epsilon .or. recursion == 0) then
+  				write(unit=7, fmt=*) i, e_tot_i1
+  				print*, 'minimun reached in ',i,' steps'
+  				print*, 'this should be > 0', recursion
+  				exit
+  			end if
   			pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
   			call scatola(pos(:,1:m_index), box_size(1))
   			recursion = 10000
   			e_tot_i0 = e_tot_i1
   		else
-  			if (abs(e_tot_i0 - e_tot_i1)>epsilon .or. recursion == 0) then
-  				write(unit=7, fmt=*) i, e_tot_i1
-  				print*, 'minimun reached', recursion
-  				exit
-  			else
-  				recursion = recursion - 1
-  				call gradient(pos(:,1:m_index),m_index,box_size(1),direction)
-  				do j = 1, m_index, 1
-  					direction(:,j) = direction(:,j) / sqrt(dot_product(direction(:,j),direction(:,j)))
-  				end do
-  				pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
-  				call scatola(pos(:,1:m_index), box_size(1))
-  				e_tot_i0 = e_tot_i1
-  			end if
+  			recursion = recursion - 1
+  			call gradient(pos(:,1:m_index),m_index,box_size(1),direction)
+  			do j = 1, m_index, 1
+  				direction(:,j) = direction(:,j) / sqrt(dot_product(direction(:,j),direction(:,j)))
+  			end do
+  			pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
+  			call scatola(pos(:,1:m_index), box_size(1))
   		endif
   	call snapshot(snap_shot_name, atom_type, pos(:,1:m_index), comment, .true.)
   	end do
