@@ -19,7 +19,7 @@ module Box
 		real(kind = kr), dimension(3), intent(out):: delta
 		logical, intent(in) :: debug
 		real(kind = kr), dimension(3) :: supp
-		!verificare se modulo è corretto oppure no
+		! attenzione, mod conserva il segno
 		supp = mod(posa(:)-posb(:),side)
 		! se la particella si trova oltre la metà della scatola
 		! allora la speculare più vicina è nella scatola precedente
@@ -53,6 +53,7 @@ module Box
 				print*, "------ particella ", i , " di ", size(pos, dim=2)
 				print*, "posizione iniziale:", pos(:,i)
 			end if
+			! attenzione, modulo NON conserva il segno
 			pos(:,i) = modulo(pos(:,i),side)
 			if ( debug ) print*, "posizione finale:", pos(:,i)
 		end do
