@@ -38,8 +38,8 @@ program starting_positions
   	! sample preparation variable
   	real(dp) :: e_tot_i0, e_tot_i1
   	real(dp), dimension(:,:), allocatable :: direction
-  	integer :: recursion = 10
-  	real(dp):: epsilon = 1.0d-6
+  	integer :: recursion = 10000
+  	real(dp):: epsilon = 1.0d-8
   	real(dp) :: lambda = 0.0001
 
   	! random variable
@@ -193,8 +193,9 @@ program starting_positions
   	do 
   		i = i + 1
   		call potential(pos(:,1:m_index),m_index,e_tot_i1,box_size(1))
-  		if (mod(i,500)==0) exit
+  		!if (mod(i,500)==0) exit
   		write(unit=7, fmt=*) i, e_tot_i1
+  		if (i<=200) call snapshot(snap_shot_name, atom_type, pos(:,1:m_index), comment, .true.)
   		if (mod(i,1000)==0) then
   			print* ,i, e_tot_i1
   			call snapshot(snap_shot_name, atom_type, pos(:,1:m_index), comment, .true.)
@@ -219,7 +220,6 @@ program starting_positions
   			pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
   			call scatola(pos(:,1:m_index), box_size(1))
   		endif
-  	call snapshot(snap_shot_name, atom_type, pos(:,1:m_index), comment, .true.)
   	end do
 
   	print* , 'end of steepest descent algorithm'
