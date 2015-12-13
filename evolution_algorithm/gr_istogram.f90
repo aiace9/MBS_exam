@@ -72,10 +72,15 @@ contains
 		end if
 
 		do ibin= 1 ,nbin
-			if ( debug ) print*, 'D: saving bin', ibin, hist(ibin)
 			r = (ibin-0.5)*step - a
-			vb = (4.0/3.0)*pi*((nbin)**3-(nbin-1)**3)*step**3
+			vb = (4.0/3.0)*pi*((ibin)**3-(ibin-1)**3)*step**3
 			nid = vb * rho
+			if ( debug ) then
+				print*, 'D: saving bin', ibin, hist(ibin)
+				print*, 'D: r, vb, nid', r , vb, nid
+				print*, 'D: divisore', (float(points)*npart*nid)
+				!read*, debug
+			end if
     		write(unit=myunit,fmt=*) r,hist(ibin)/(float(points)*npart*nid)
   		end do
 
