@@ -14,7 +14,7 @@ program starting_positions
 	
 	implicit none
 	integer,parameter :: dp = selected_real_kind(12)
-	character(len=9),parameter :: filename = 'start.txt'
+	character(len=9),parameter :: filename = 'sample.txt'
 	! lattice variables
 	real(dp), dimension(3) :: box_size !lx,ly,lz
 	integer, dimension(3) :: quanta_box !nx,ny,nz
@@ -53,7 +53,9 @@ program starting_positions
 
 	print *, "this algorithm will prepare the sample"
 	print*, 'insert the box size (x,y,z)'
-	read*, box_size
+	read*, box_size(1)
+	box_size(2) = box_size(1)
+	box_size(3) = box_size(1)	
 	print*, 'insert the lattice constant'
 	read*, a
 	print*, 'insert the lattice type (not implemented, FCC only)'
@@ -94,7 +96,7 @@ program starting_positions
 
 	allocate(atom_type(n_molecule), stat=err)
 	if (err /= 0) print *, "atom_type: Allocation request denied"
-	
+
 	!sequential filling for an FCC lattice
 	do k = 0, quanta_box(3)-1, 1
 		do j = 0, quanta_box(2)-1, 1
@@ -139,8 +141,7 @@ program starting_positions
 	end do
 
 	! fix the number  of molecules
-	m_index = m_index -1
-	print*, 'number of molecules:', m_index
+	if (m_index< n_molecule) m_index = m_index -1
 
 	! ATTENTION
   	! from now on the code works only for cubic box! 
@@ -159,7 +160,7 @@ program starting_positions
 		pos(3,m_index)= rnd(3) * box_size(3)
 		print* , "extra molecule in: ", pos(:,m_index)
 	end if
-
+	print*, 'number of molecules:', m_index
 	!input for the snapshot
   	print*, 'name of the snapshot:'
   	read*, snap_shot_name
@@ -192,26 +193,38 @@ program starting_positions
   	do 
   		i = i + 1
   		call potential(pos(:,1:m_index),m_index,e_tot_i1,box_size(1))
+  		if (mod(i,500)==0) exit
   		write(unit=7, fmt=*) i, e_tot_i1
-  		if (debug) print* ,i, e_tot_i1
+  		if (mod(i,1000)==0) then
+  			print* ,i, e_tot_i1
+  			call snapshot(snap_shot_name, atom_type, pos(:,1:m_index), comment, .true.)
+  		endif
   		if (e_tot_i0 > e_tot_i1 ) then
   			pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
+  			call scatola(pos(:,1:m_index), box_size(1))
   			recursion = 10000
   			e_tot_i0 = e_tot_i1
   		else
   			if (abs(e_tot_i0 - e_tot_i1)>epsilon .or. recursion == 0) then
+  				write(unit=7, fmt=*) i, e_tot_i1
   				print*, 'minimun reached', recursion
   				exit
   			else
   				recursion = recursion - 1
   				call gradient(pos(:,1:m_index),m_index,box_size(1),direction)
+  				do j = 1, m_index, 1
+  					direction(:,j) = direction(:,j) / sqrt(dot_product(direction(:,j),direction(:,j)))
+  				end do
   				pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
+  				call scatola(pos(:,1:m_index), box_size(1))
   				e_tot_i0 = e_tot_i1
   			end if
   		endif
+  	call snapshot(snap_shot_name, atom_type, pos(:,1:m_index), comment, .true.)
   	end do
 
   	print* , 'end of steepest descent algorithm'
+
 
   	close(unit=7, iostat=ios)
   	if ( ios /= 0 ) stop "Error closing file unit 7"
