@@ -11,9 +11,10 @@ module Diffusion
 	integer, parameter :: dp = selected_real_kind(12)
 	real(kind = dp), parameter:: pi = 3.1415
 	
-	integer, save, dimension(:), allocatable :: n_time, vacf, time0
+	integer, save, dimension(:), allocatable :: n_time, time0
+	real, save, dimension(:), allocatable :: vacf
 	real, save, dimension(:,:,:), allocatable :: vx0
-	integer,save :: n_call, it0, t0
+	integer,save :: n_call, it0, t0, t0_max
 
 
 contains
@@ -25,13 +26,14 @@ contains
 		integer :: err
 		n_call = 0
 		it0 = b
+		t0_max = int(nstep/it0)
 		allocate(n_time(nstep), stat=err)
 		if (err /= 0) print *, "n_time: Allocation request denied"
 		allocate(vacf(nstep), stat=err)
 		if (err /= 0) print *, "vacf: Allocation request denied"
-		allocate(time0(int(nstep/it0)), stat=err)
+		allocate(time0(t0_max), stat=err)
 		if (err /= 0) print *, "time0: Allocation request denied"
-		allocate(vx0(3,nbody,int(nstep/it0)), stat=err)
+		allocate(vx0(3,nbody,t0_max), stat=err)
 		if (err /= 0) print *, "time0: Allocation request denied"
 		n_time = 0	
 		vacf = 0
@@ -47,20 +49,30 @@ contains
 		integer :: t,i
 		logical :: debug = .false.
 		n_call = n_call + 1
-		if (mod(n_call,it0) == 0) then
+		if (debug) print*, 'n_call: ', n_call
+		if (mod(n_call - 1,it0) == 0) then
 			t0 = t0 + 1
-			tt0 = mod(t0-1, int(nstep/it0)) + 1
+			tt0 = mod(t0-1, t0_max) + 1
 			time0(tt0) = n_call
 			vx0 (:,:,tt0) = vel
+			if (debug) then
+				print*,'D - t0: ', t0
+				print*,'D - time0:', time0
+				print*,'D - velocity:', vx0(:,1,tt0)
+			endif
 		endif
-		do t = 1, min(t0,nstep), 1
+		do t = 1, min(t0,t0_max), 1
 			! n_call = step in our case.
 			delt = n_call - time0(t) +1
-			if (delt < step) then
+			if (debug) print*,'D - delta', t ,'=',  delt
+			if (delt <= step) then
 				n_time(delt) = n_time(delt) + 1
 				do i = 1, nbody, 1
-					! check dot product, may be not correct
 					vacf(delt) = vacf(delt) + dot_product(vel(:,i),vx0(:,i,t))
+					if (debug) then
+						print*,'D - vacf(delta):', vacf(delt)
+						print*,'D - dot:',dot_product(vel(:,i),vx0(:,i,t))
+					end if
 				end do
 			end if
 		end do
@@ -74,7 +86,16 @@ contains
 		logical :: debug = .false.
 		integer ::i 
 		sum = 0
+		if (debug) then
+			do i = 1, t0_max, 1
+				print*, 'D - n_time', n_time(it0*i)
+			end do
+		end if
 		do i = 1, nstep, 1
+			if (debug) then
+				print*, 'D - sum:',sum
+				print*, 'D - vacf(i):',vacf(i)
+			end if 
 			sum = sum + vacf(i)/ (nbody * n_time(i))
 		end do
 		print *, 'the Diffusion coefficient is:', sum * dt
