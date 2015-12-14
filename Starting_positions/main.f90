@@ -25,6 +25,7 @@ program starting_positions
 	integer :: n_molecule, max_molecule
 	character(len=1) :: extra_molecule
 	real(dp), dimension(:,:),allocatable :: pos
+	real(dp), dimension(:,:),allocatable :: pos_old
 
 	! iteration index
 	integer :: i,j,k,q
@@ -38,7 +39,7 @@ program starting_positions
   	! sample preparation variable
   	real(dp) :: e_tot_i0, e_tot_i1
   	real(dp), dimension(:,:), allocatable :: direction
-  	integer :: recursion = 10000
+  	integer :: recursion = 9
   	real(dp):: epsilon = 1.0d-8
   	real(dp) :: lambda = 0.0001
 
@@ -76,7 +77,8 @@ program starting_positions
 	if (extra_molecule == "y") then
 		allocate(pos(3,n_molecule + 1), stat=err)
 		if (err /= 0) print *, "pos: Allocation request denied"
-		
+		allocate(pos_old(3,n_molecule + 1), stat=err)
+		if (err /= 0) print *, "pos_old: Allocation request denied"
 		! random settings
 		print*," seed (one integer)?"
   		read*, seed1
@@ -90,6 +92,8 @@ program starting_positions
 	else
 		allocate(pos(3,n_molecule), stat=err)
 		if (err /= 0) print *, "pos: Allocation request denied"
+		allocate(pos_old(3,n_molecule), stat=err)
+		if (err /= 0) print *, "pos_old: Allocation request denied"
 	end if 
 	
 	if ( debug ) print*, 'D: array allocation', size(pos, dim=1), size(pos, dim=2)
@@ -178,6 +182,7 @@ program starting_positions
 
   	! start of the steepest descent
   	print*, "starting steepest descent algorithm..."
+  	pos_old = pos
 
   	allocate(direction(3,m_index), stat=err)
   	if (err /= 0) print *, "direction: Allocation request denied"
@@ -210,12 +215,18 @@ program starting_positions
   				print*, 'this should be > 0', recursion
   				exit
   			end if
+  			pos_old = pos
   			pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
   			call scatola(pos(:,1:m_index), box_size(1))
-  			recursion = 10000
+  			recursion = 9
   			e_tot_i0 = e_tot_i1
   		else
+  			if (mod(recursion,2) == 0) then
+  				print*, lambda
+  				lambda = lambda/2
+  			endif
   			recursion = recursion - 1
+  			pos = pos_old
   			call gradient(pos(:,1:m_index),m_index,box_size(1),direction)
   			do j = 1, m_index, 1
   				direction(:,j) = direction(:,j) / sqrt(dot_product(direction(:,j),direction(:,j)))
