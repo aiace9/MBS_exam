@@ -2,7 +2,7 @@ module Diffusion
 
 	implicit none
 	
-	private :: n_call, ntime, vacf, it0, t0, vx0, time0
+	private :: n_call, n_time, vacf, it0, t0, vx0, time0
 
 
 	public :: push_D, init_D, save_D
@@ -21,7 +21,7 @@ contains
 		! this routine initialize D
 		! nstep: number of the time step
 		! b: distance between two window stars
-		integer, intent(in) :: nstep
+		integer, intent(in) :: nstep,nbody,b
 		integer :: err
 		n_call = 0
 		it0 = b
@@ -43,13 +43,13 @@ contains
 		! 
 		real(kind = dp), intent(in), dimension(:,:) :: vel
 		integer, intent(in) :: step, nstep, nbody
-		integer :: delt
-		integer :: t
+		integer :: delt, tt0
+		integer :: t,i
 		logical :: debug = .false.
 		n_call = n_call + 1
 		if (mod(n_call,it0) == 0) then
 			t0 = t0 + 1
-			tt0 = mod(t0-1) + 1
+			tt0 = mod(t0-1, int(nstep/it0)) + 1
 			time0(tt0) = n_call
 			vx0 (:,:,tt0) = vel
 		endif
@@ -57,11 +57,12 @@ contains
 			! n_call = step in our case.
 			delt = n_call - time0(t) +1
 			if (delt < step) then
-				n_time(delt) = ntime(delt) + 1
+				n_time(delt) = n_time(delt) + 1
 				do i = 1, nbody, 1
 					! check dot product, may be not correct
 					vacf(delt) = vacf(delt) + dot_product(vel(:,i),vx0(:,i,t))
 				end do
+			end if
 		end do
 	end subroutine push_D
 
@@ -71,6 +72,7 @@ contains
 		real(kind = dp), intent(in) :: dt
 		real :: sum
 		logical :: debug = .false.
+		integer ::i 
 		sum = 0
 		do i = 1, nstep, 1
 			sum = sum + vacf(i)/ (nbody * n_time(i))
