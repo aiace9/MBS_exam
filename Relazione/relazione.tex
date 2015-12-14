@@ -13,6 +13,7 @@
 \usepackage{tikz}
 \usetikzlibrary{decorations}
 \usetikzlibrary{er}
+\graphicspath{{./img/}}
 
 \author{Ruggero Lot \\ ruggero90@gmail.com \\ fisica della materia \\}
 \title{Esame di MBS}
@@ -51,7 +52,8 @@
 		Il campione generato attraverso questo strumento consiste in un reticolo
 		FCC (di passo reticolare a piacere) con un atomo interstiziale(se 
 		richiesto) contenuto in una scatola cubica (di lato l) e pronto per
-		essere utilizzato in algoritmi capaci di implementare le condizioni periodiche al contorno.\\
+		essere utilizzato in algoritmi capaci di implementare le condizioni 
+		periodiche al contorno.\\
 		Il software consta di 2 algoritmi: il primo è quello di posizionamento 
 		delle particelle all'interno della scatola, operazione che viene svolta
 		in maniera sequenziale inserendo i 4 atomi per ogni cella unitaria nelle 
@@ -85,10 +87,57 @@
 					edge (T);
 			\end{tikzpicture}	
 	    \end{center}
-	    Questo metodo non è molto rapido ma fa quello che deve fare.
+	    Questo metodo non è molto rapido ma ci permette di ottenere comunque
+	    risultati ragionevoli in tempi contenuti.
+	    Nota importante, è stata inserita una normalizzazione del vettore di discesa
+	    per evitare, soprattutto nelle fasi iniziali dove il vettore gradiente ha 
+	    modulo molto grande, salti spaziali delle particelle privi di significato fisico.
 	% section software_per_la_creazione_del_sample (end)
-	\subsection{Risultati} % (fold)
-	\label{sub:risultati}
-	
-	% subsection risultati (end)
+	\subsection{Dati ottenuti} % (fold)
+	\label{sub:dati_ottenuti}
+		questo primo programma è stato fatto eseguire con dei valori numerici 
+		pensati in modo tale da garantire immediatamente una situazione di stabilità
+		del sistema eccezion fatta per la particella interstiziale che viene posizionata in maniera del tutto casule all'interno della scatola.
+		\paragraph{Cella unitaria e scatola di simulazione\\} % (fold)
+		\label{par:cella_unitaria_e_scatola_di_simulazione}
+			Per la cella unitaria è stata valutata la situazione di maggior 
+			stabilità: il potenziale di LJ
+			\begin{equation}
+				U(\mathbf{r}_{ij})= 4 \epsilon \left(\left(\frac{\sigma}{\mathbf{r}_{ij}}\right)^{12}\
+				-\left(\frac{\sigma}{\mathbf{r}_{ij}}\right)^6\right)
+			\end{equation}
+			ha un minimo in:
+			\begin{equation}
+				\left|\mathbf{r}_{ij}\right| = 2^{\frac{1}{6}} \sigma
+				\approx 2.12 \sigma
+			\end{equation}
+			pertanto il lato della cella FCC risulta essere, ponendo $\sigma = 1$:
+			\begin{equation}
+				l = \frac{2^{\frac{1}{6}+1}}{\sqrt{2}} \approx 1.59
+			\end{equation}
+			per la nostra scatola cubica sono stati scelti valori di lato pari a 
+			$2l$, $3l$, $4l$, $5l$ che sono capaci di contenere rispettivamente: 
+			$32$, $108$, $256$, $512$ particelle
+		% paragraph cella_unitaria_e_scatola_di_simulazione (end)
+		\paragraph{Evoluzione dell'energia durante lo Steepest Descent\\} % (fold)
+		\label{par:evoluzione_dell_energia_durante_lo_steepest_descent}
+			\`E comune osservare in tutti i grafici come l'energia sia molto
+			elevata all'inizio e tenda rapidamente ad un valore molto piccolo per
+			poi mantenersi quasi stabile.\\
+			Questo è dovuto al fatto che la particella aggiunta in maniera 
+			completamente casuale si trova quasi sempre vicino ad un altra 
+			particella e il potenziale di ordine 12 fa si che anche piccoli
+			spostamenti (i primi steps) causino grandi variazioni di energia;
+			raggiunta in seguito una configurazione stabile questo 
+			fenomeno sparisce.\\
+			
+
+			\begin{figure}[H]
+					\centering
+					\includegraphics[scale = 0.7]{E_SD_32.eps}
+					\caption{andameto dell'energia durante lo Steepest Descent per il campione composto da 32 particelle. Si notano chiaramente i cambi di direzione del gradiente ed si osserva come la convergenza non impieghi molti step}
+					\label{fig:SD_32}
+				\end{figure}	
+		% paragraph evoluzione_dell_energia_durante_lo_steepest_descent (end)
+	% subsection dati_ottenuti (end)
 \end{document}
