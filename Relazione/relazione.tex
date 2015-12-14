@@ -130,14 +130,50 @@
 			spostamenti (i primi steps) causino grandi variazioni di energia;
 			raggiunta in seguito una configurazione stabile questo 
 			fenomeno sparisce.\\
-			
-
 			\begin{figure}[H]
 					\centering
 					\includegraphics[scale = 0.7]{E_SD_32.eps}
-					\caption{andameto dell'energia durante lo Steepest Descent per il campione composto da 32 particelle. Si notano chiaramente i cambi di direzione del gradiente ed si osserva come la convergenza non impieghi molti step}
+					\caption{andameto dell'energia durante lo Steepest Descent per il campione composto da 32 particelle. Si notano chiaramente i cambi di direzione del gradiente e si osserva come la convergenza non impieghi molti step}
 					\label{fig:SD_32}
-				\end{figure}	
+			\end{figure}
+
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=0.7]{E_SD_108.eps}
+				\caption{andameto dell'energia durante lo Steepest Descent per il campione composto da 108 particelle. Si osserva comportamento simile alla figura \ref{fig:SD_32}}
+				\label{fig:SD_108}
+			\end{figure}
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=0.7]{E_SD_256.eps}
+				\caption{andameto dell'energia durante lo Steepest Descent per il campione composto da 256 particelle. Qua si perde la concezione di cambio del gradiente in quanto i punti sono troppo fitti.}
+				\label{fig:SD_256}
+			\end{figure}
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=0.7]{E_SD_500.eps}
+				\caption{andameto dell'energia durante lo Steepest Descent per il campione composto da 500 particelle. Si osserva comportamento simile alla figura \ref{fig:SD_256}}
+				\label{fig:SD_500}
+			\end{figure}
+		Feedback utile per capire se il campione ha raggiunto valori energetici ragionevoli è osservare l'energia prima dell'aggiunta della molecola extra, dopo l'aggiunta della molecola, e al termine dello Steepest Descent:
+		\begin{table}[H]
+			\centering
+			\begin{tabular}{l|ccc}
+			\hline
+		
+			\hline
+			\textbf{camione} & \textbf{Senza molecola} & \textbf{Con molecola} & \textbf{Risultato SD} \\
+			\hline
+				32	 & -218.84 	 & 999.26 	& 	-207.70 \\
+				108 & 	-861.04	 & 	8524.84 & 	-852.14 \\
+				256 & 	-2104.42 & 	428858.58 	& -2096.39 \\
+				500 & 	-4152.05 & 	214023.88	& -4144.24 \\
+			\hline
+		
+			\hline
+			\end{tabular}
+		\end{table}
+		è facile notare , nel nostro caso, gli scarti siano qualitativamente molto piccoli.
 		% paragraph evoluzione_dell_energia_durante_lo_steepest_descent (end)
 	% subsection dati_ottenuti (end)
 \end{document}
