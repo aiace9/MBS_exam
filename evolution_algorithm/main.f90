@@ -130,7 +130,7 @@ program main
 
 
   !--------caricamento o creazione delle velocità---!
-  if (dyn) then
+  if (.true.) then
     print*, "nome del file con velocità, (0 se il file non esiste)"
       read*, file
       if ( file == '0' ) then
@@ -309,9 +309,9 @@ program main
 
   close(unit=3, iostat=ios)
   if ( ios /= 0 ) stop "Error closing file unit 3"
-
+  print *, 'salvataggio'
   !-------salviamo le posizioni finali per un eventuale nuovo start------!
-  open(unit=4, file='sample2_pos.dat', iostat=ios,  status="unknown", action="write")
+  open(unit=4, file='sample2_pos.dat', iostat=ios, action="write")
   if ( ios /= 0 ) stop "Error opening file sample2_pos.dat"
     
   write(unit=4,fmt=*) pos
@@ -320,7 +320,7 @@ program main
   if ( ios /= 0 ) stop "Error closing file unit 4"
 
   !-------salviamo le velocità finali per un eventuale nuovo start-------!
-  open(unit=4, file='sample2_vel.dat', iostat=ios,  status="unknown", action="write")
+  open(unit=4, file='sample2_vel.dat', iostat=ios, action="write")
   if ( ios /= 0 ) stop "Error opening file sample2_vel.dat"
   
   write(unit=4,fmt=*) vel
