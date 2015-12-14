@@ -183,6 +183,9 @@ program starting_positions
   	if (err /= 0) print *, "direction: Allocation request denied"
   	
   	call gradient(pos(:,1:m_index),m_index,box_size(1),direction)
+  	do j = 1, m_index, 1
+  		direction(:,j) = direction(:,j) / sqrt(dot_product(direction(:,j),direction(:,j)))
+  	end do  	
   	pos(:,1:m_index) = pos(:,1:m_index) + lambda * direction
   	
   	open(unit=7, file="energy.dat", iostat=ios, action="write")
