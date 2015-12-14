@@ -1,0 +1,47 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage[top=3 cm, bottom=3.5 cm, left=2.5 cm, right=2.5 cm]{geometry}
+\usepackage{siunitx}
+\usepackage{fancyhdr}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{braket}
+
+\author{Ruggero Lot \\ ruggero90@gmail.com \\ fisica della materia \\}
+\title{Esame di MBS}
+\begin{document}
+	\maketitle
+	\paragraph{Problema:} % (fold)
+	\label{par:problema}
+		Si consideri un cristallo LJ con un interstiziale: ovvero una struttura
+		FCC di N siti cristallini occupati da N+1 atomi, l' N+1-mo trovandosi in
+		un sito non FCC. Si ponga l'atomo addizionale in modo da massimizzare la
+		distanza dai primi vicini (il cristallo sarà sotto stress, si calcoli la
+		struttura di equilibrio usando uno Steepest Descent).\\
+		L'obiettivo è di calcolare il coefficiente di autodiffusione D, il quale,
+		visto che il cristallo perfetto praticamente non diffonde, sarà dovuto 
+		interamente all'atomo addizionale. Può essere che per vedere una diffusione
+		apprezzabile sia necessario avvicinarsi alla T di fusione, facendo
+		attenzione a verificare che il sistema rimanga solido (calcoli affini
+		nello stato liquido possono essere d'aiuto). A questo fine può essere
+		utile partire da T relativamente basse per poi eseguire simulazioni a T
+		via via più alte, ogni volta partendo dallo stato finale della simulazione
+		precedente.\\
+		Eseguire un fit di $D(T)$ seguendo la relazione di Arrhenius
+		\begin{equation*}
+			D = D_0 e^{\frac{Q}{kT}}. 
+		\end{equation*}
+		Stimare la dipendenza di D da N per almeno una T.
+	% paragraph problema (end)
+	\newpage
+	\tableofcontents
+	\newpage
+	\section{Software per la creazione del Sample} % (fold)
+	\label{sec:software_per_la_creazione_del_sample}
+		
+	% section software_per_la_creazione_del_sample (end)
+\end{document}
