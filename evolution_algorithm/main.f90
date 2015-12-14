@@ -5,6 +5,7 @@ program main
   use anderson_module
   use Box
   use gr_istogram_module
+  use Diffusion
 
   implicit none
   integer,parameter::kr=selected_real_kind(12)
@@ -42,19 +43,19 @@ program main
   real(kind=kr) :: rij
   real(kind=kr) :: delta
   real(kind=kr), dimension(3) :: posij
+  !----------diffiusion------------------|
+  integer :: it0
 
   !-------indici-------!
   integer :: it, i, j
   
   ! input utente
   
-  write(unit=*,fmt="(a)",advance="no")"dinamica?"
+  write(unit=*,fmt="(a)",advance="no")"Verlet?"
   read*, dyn
   
-  if (dyn) then
-    write(unit=*,fmt="(a)",advance="no")"vmax?"
-    read*, vmax 
-  end if
+  write(unit=*,fmt="(a)",advance="no")"vmax?"
+  read*, vmax 
   
   write(unit=*,fmt="(a)",advance="no")"n corpi?"
   read*, nbody
@@ -87,6 +88,12 @@ program main
   print*, "side of the box, only cubic boxes are supported:"
   read*, side
 
+  !-------diffusion option--------!
+  print *, 'how big is the window for the diffiusion coefficient?'
+  print *, 'window < ', nstep
+  read*, it0
+  call init_D(nstep, nbody, it0)
+
   !-------anderson option---------!
   print*, "do you want to implement Anderson? t/f"
   read*, anderson_evol
@@ -106,6 +113,7 @@ program main
   print*, 'Tipo di atomo che stiamo trattando, funzione non supportata'
   read*, dummy 
   atom_type = 'Ar'
+  !atom_type(nbody) = 'Ne'
 
   !------caricamento delle coordinate------!
   print*, "nome del file con coordinate"
@@ -149,6 +157,8 @@ program main
       end if
     
   end if
+  !-----sanapshot iniziale-----!
+  if (nstep <= 50000) call snapshot(snap_shot_name, atom_type, pos, comment, .false.)
 
   !---------apertura dei file per la scrittura----!
   open(unit=1, file='pos_vel.dat', iostat=ios, status="unknown", action="write")
@@ -163,16 +173,21 @@ program main
   !-----------algoritmo principale-----------!
   !generazione del porimo step senza verlet
   call interazione(pos,nbody,f,mepot, side)
-  pos_old = pos
-  do i = 1,nbody
-    pos(:,i) = pos(:,i) + vel(:,i) * dt + 0.5* f(:,i)/massa * dt**2
-    vel(:,i) = vel(:,i) + dt * f(:,i)/massa
-  end do
+  
+  if (dyn) then
+    ! I do the first step if the verlet algorithm is active
+    pos_old = pos
+    do i = 1,nbody
+      pos(:,i) = pos(:,i) + vel(:,i) * dt + 0.5* f(:,i)/massa * dt**2
+      vel(:,i) = vel(:,i) + dt * f(:,i)/massa
+    end do
+  endif
   
   
   if ( debug ) print*, 'D - prima chiamata routine interazione, successo'
   do it = 1,nstep
     if (dyn) then
+      !----dynamic evolution with anderson
       !----calcolo l'interazione fra le particelle----!
       call interazione(pos,nbody,f,mepot, side)
       
@@ -199,7 +214,7 @@ program main
       !----salvataggio dati-------!
       !----al tempo t
       if (mod(it,50) == 0) then
-        !write(unit=1,fmt=*)it,it*dt,pos,vel
+        write(unit=1,fmt=*)it,it*dt,pos
         write(unit=2,fmt=*)it,mekin,mepot,mekin+mepot
         write(unit=3,fmt=*)it, it*dt, T_ist
       endif
@@ -210,11 +225,8 @@ program main
       !-----riposiziono le particelle all'interno della scatola----!
       call scatola(pos,side)
 
-      !-----percentuale----!
-      if( mod(it,nstep/10) == 0) print*, floor(it/(nstep*1.0)*100)
-
     else
-      !---- not pure dynamic evolution, thermalization of the sample-----!
+      !---- dynamic evolution with a kind of leapfrog-----!
       !-----primo step pos vel------!
       do i = 1,nbody
         pos(:,i) = pos(:,i) + vel(:,i) * dt + 0.5* f(:,i)/massa * dt**2
@@ -227,13 +239,25 @@ program main
       !----calcolo l'interazione fra le particelle----!
       call interazione(pos,nbody,f,mepot, side)
       
-      !----implementazione di anderson-----!
-      !----beta è 1/T attenzione alle formule ------!
-      call anderson_integration(vel,f,massa,beta,anderson_freq,dt,T_ist)
+      if(anderson_evol .eqv. .true.) then
+        !----implementazione di anderson-----!
+        !----beta è 1/T attenzione alle formule ------!
+        call anderson_integration(vel,f,massa,beta,anderson_freq,dt,T_ist)
+        do i=1,nbody
+          ekin(:,i) = 0.5 * massa * (vel(:,i))**2
+        end do
+
+      else
+        !---secondo setp pos vel senza anderson--------!
+        do i=1,nbody
+          vel(:,i) = vel(:,i) + 0.5 * dt * f(:,i)/massa
+          ekin(:,i) = 0.5 * massa * (vel(:,i))**2
+          T_ist = T_ist + dot_product(vel(:,i),vel(:,i))
+        end do
+        T_ist = (T_ist/(3.0*size(vel, dim=2)))* massa
       
-      do i=1,nbody
-        ekin(:,i) = 0.5 * massa * (vel(:,i))**2
-      end do
+      endif
+      call push_D(vel, it, nstep, nbody)
       mekin = sum(ekin)
       
       !----salvataggio dati-------!
@@ -242,31 +266,39 @@ program main
         write(unit=2,fmt=*)it,mekin,mepot,mekin+mepot
         write(unit=3,fmt=*)it, it*dt, T_ist
       endif
-      !-----percentuale----!
-      if( mod(it,nstep/10) == 0) print*, floor(it/(nstep*1.0)*100)
 
     end if
-  !-----sanapshot per il video-----!
-  if (nstep < 1000) call snapshot(snap_shot_name, atom_type, pos, comment, .true.)
+    
+    !-----percentuale----!
+    if( mod(it,nstep/10) == 0) print*, floor(it/(nstep*1.0)*100)
+    
+    !-----sanapshot per il video-----!
+    if (nstep <= 50000) then
+      if ( mod(it,500) == 0) then
+        call snapshot(snap_shot_name, atom_type, pos, comment, .true.)
+      end if
+    end if 
+  
   end do
 
   ! evaluation of g(r)
   if (.true.) then
-    delta = 0.01
+    delta = 0.1
     call init_gr(side,delta)
-    do i=1,nbody
-      do j=1,nbody
+    do i=1,nbody - 1
+      do j= i+ 1,nbody
         if( i==j ) cycle
         call PBC(pos(:,i), pos(:,j), rij, posij, side, .false.)
-        !print *, rij
+        call push_gr(rij)
         call push_gr(rij)
       end do
-    end do
+    end do    
     call save_data_gr(nbody/side**3, nbody)
   end if
-
+  ! print diffusion coefficient
+  call save_D(nstep, nbody, dt)
   !snapshot situazione finale
-  !call snapshot(snap_shot_name, atom_type, pos, comment, .false.)
+  call snapshot(snap_shot_name, atom_type, pos, comment, .true.)
 
   !-----chiusura di tutti i file aperti------!
   close(unit=1, iostat=ios)
