@@ -1,7 +1,7 @@
 \documentclass[a4paper,11pt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[italian]{babel}
-\usepackage[top=3 cm, bottom=3.5 cm, left=2.5 cm, right=2.5 cm]{geometry}
+%\usepackage[top=3 cm, bottom=3.5 cm, left=2.5 cm, right=2.5 cm]{geometry}
 \usepackage{siunitx}
 \usepackage{fancyhdr}
 \usepackage{amsthm}
@@ -42,6 +42,25 @@
 	\newpage
 	\section{Software per la creazione del Sample} % (fold)
 	\label{sec:software_per_la_creazione_del_sample}
-		
+		Il software ``starting\_positions'' è stato generato allo scopo di poter 
+		generare un campione sul quale andare poi ad eseguire simulazioni per
+		raccogliere dati sul comportamento delle particelle.\\
+		Il campione generato attraverso questo strumento consiste in un reticolo
+		FCC (di passo reticolare a piacere) con un atomo interstiziale(se 
+		richiesto) contenuto in una scatola cubica (di lato l) e pronto per
+		essere utilizzato in algoritmi capaci di implementare le condizioni periodiche al contorno.\\
+		Il software consta di 2 algoritmi: il primo è quello di posizionamento 
+		delle particelle all'interno della scatola, operazione che viene svolta
+		in maniera sequenziale inserendo i 4 atomi per ogni cella unitaria nelle 
+		posizioni FCC con la base:
+		\begin{align}
+			\mathbf a_1  &= a(0,0,0) & 
+			\mathbf a_2  &= a(0,0.5,0.5) &
+			\mathbf a_3  &= a(0.5,0,0.5) 
+		\end{align}
+		scartando eventuali atomi esterni alla scatola o doppi a causa delle pbc.\\
+		Il secondo invece si occupa di portare il sistema, se sotto stress, ad uno 
+		stato di equilibrio. Per risolvere questo problema è stato utilizzato uno 
+		Steepest Descent
 	% section software_per_la_creazione_del_sample (end)
 \end{document}
