@@ -10,6 +10,9 @@
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{braket}
+\usepackage{tikz}
+\usetikzlibrary{decorations}
+\usetikzlibrary{er}
 
 \author{Ruggero Lot \\ ruggero90@gmail.com \\ fisica della materia \\}
 \title{Esame di MBS}
@@ -61,6 +64,31 @@
 		scartando eventuali atomi esterni alla scatola o doppi a causa delle pbc.\\
 		Il secondo invece si occupa di portare il sistema, se sotto stress, ad uno 
 		stato di equilibrio. Per risolvere questo problema è stato utilizzato uno 
-		Steepest Descent
+		Steepest Descent che viene implementato nel seguente modo:
+		\begin{center}
+			\begin{tikzpicture}
+				[text depth=1pt,
+				every attribute/.style={fill=black!20,draw=black},
+				every entity/.style={fill=blue!20,draw=blue,thick},
+				every relationship/.style={fill=orange!20,draw=orange,thick,aspect=1.5}]
+				
+				\node[entity] (F) at (-3,0) {Rifiuto la mossa} 
+					child {node [entity]{Gradiente} child {node [entity]{step}}};
+				
+				\node[entity] (F) at (-3,0) {Rifiuto la mossa} 
+					child {node [entity]{Gradiente} child {node [entity]{step}}};
+				\node[relationship] (T) at (0,-2) {$\Delta E < \epsilon$}
+					child {node [entity]{Step} child {node [entity]{E = E + 1}}};
+	
+				\node[relationship]	at (0,0) {file.py} 
+					edge (F) 
+					edge (T);
+			\end{tikzpicture}	
+	    \end{center}
+	    Questo metodo non è molto rapido ma fa quello che deve fare.
 	% section software_per_la_creazione_del_sample (end)
+	\subsection{Risultati} % (fold)
+	\label{sub:risultati}
+	
+	% subsection risultati (end)
 \end{document}
