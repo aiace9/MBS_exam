@@ -39,6 +39,7 @@ contains
 		vacf = 0
 		time0 = 0
 		t0 = 0
+		vx0 = 0
 	end subroutine init_D
 
 	subroutine push_D(vel, step, nstep, nbody)
