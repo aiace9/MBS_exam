@@ -47,8 +47,21 @@ program main
   integer :: it0
 
   !-------indici-------!
-  integer :: it, i, j
+  integer :: it, i, j, q
+
+  ! random variable
+    integer :: seed1, sizer
+    integer, allocatable, dimension(:) :: seed
   
+  seed1 = 49
+  call random_seed(sizer)
+  allocate(seed(sizer), stat=err)
+  if (err /= 0) print *, "seed: Allocation request denied"
+  do q = 1, sizer, 1
+    seed(q)= seed1 + 37 * (q-1)
+  end do
+  call random_seed(put=seed)
+
   ! input utente
   
   write(unit=*,fmt="(a)",advance="no")"Verlet?"
@@ -113,7 +126,7 @@ program main
   print*, 'Tipo di atomo che stiamo trattando, funzione non supportata'
   read*, dummy 
   atom_type = 'Ar'
-  !atom_type(nbody) = 'Ne'
+  atom_type(nbody) = 'C'
 
   !------caricamento delle coordinate------!
   print*, "nome del file con coordinate"
@@ -153,12 +166,17 @@ program main
             if ( istat /= 0 ) exit 
           end do
         close(unit=1)
+        do i=1,3
+          velcm(i) = sum(vel(i,:))/nbody
+          vel(i,:) = vel(i,:) - velcm(i)
+        end do
+        print*, 'velocita centro di massa', velcm
       if ( debug ) print*, 'D - caricamento velocita, successo'
       end if
     
   end if
   !-----sanapshot iniziale-----!
-  if (nstep <= 50000) call snapshot(snap_shot_name, atom_type, pos, comment, .false.)
+  if (nstep <= 100000) call snapshot(snap_shot_name, atom_type, pos, comment, .false.)
 
   !---------apertura dei file per la scrittura----!
   open(unit=1, file='pos_vel.dat', iostat=ios, status="unknown", action="write")
@@ -248,6 +266,7 @@ program main
         end do
 
       else
+
         !---secondo setp pos vel senza anderson--------!
         do i=1,nbody
           vel(:,i) = vel(:,i) + 0.5 * dt * f(:,i)/massa
@@ -255,9 +274,8 @@ program main
           T_ist = T_ist + dot_product(vel(:,i),vel(:,i))
         end do
         T_ist = (T_ist/(3.0*size(vel, dim=2)))* massa
-      
+        call push_D(vel, it, nstep, nbody)
       endif
-      call push_D(vel, it, nstep, nbody)
       mekin = sum(ekin)
       
       !----salvataggio dati-------!
@@ -273,8 +291,8 @@ program main
     if( mod(it,nstep/10) == 0) print*, floor(it/(nstep*1.0)*100)
     
     !-----sanapshot per il video-----!
-    if (nstep <= 50000) then
-      if ( mod(it,500) == 0) then
+    if (nstep <= 100000) then
+      if ( mod(it,1000) == 0) then
         call snapshot(snap_shot_name, atom_type, pos, comment, .true.)
       end if
     end if 
@@ -293,10 +311,10 @@ program main
         call push_gr(rij)
       end do
     end do    
-    call save_data_gr(nbody/side**3, nbody)
+    call save_data_gr(float(nbody)/side**3, nbody)
   end if
-  ! print diffusion coefficient
-  call save_D(nstep, nbody, dt)
+  ! print diffusion _coefficient
+  if (.not. anderson_evol) call save_D(nstep, nbody, dt)
   !snapshot situazione finale
   call snapshot(snap_shot_name, atom_type, pos, comment, .true.)
 
