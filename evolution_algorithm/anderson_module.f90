@@ -38,7 +38,7 @@ contains
 			call random_number(rnd)
 			if ( rnd .lt. nu * dt ) then
 				if ( debug ) coll = coll +1
-				!if ( debug ) print*, 'D - collisione avvenuta'
+				if ( debug ) print*, 'D - collisione avvenuta', coll
 				do j = 1, size(vel, dim=1), 1
 					call gasdev(vel(j,i))
 					vel(j,i) = sigma * vel(j,i)
