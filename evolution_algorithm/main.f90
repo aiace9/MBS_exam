@@ -249,7 +249,7 @@ program main
       do i = 1,nbody
         pos(:,i) = pos(:,i) + vel(:,i) * dt + 0.5* f(:,i)/massa * dt**2
         vel(:,i) = vel(:,i) + 0.5 * dt * f(:,i)/massa
-      end do
+      end do 
 
       !-----riposiziono le particelle all'interno della scatola----!
       call scatola(pos,side)
