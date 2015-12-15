@@ -9,7 +9,7 @@ module gr_istogram_module
 
 	!privat declaretions
 	integer, parameter :: dp = selected_real_kind(12)
-	real(kind = dp), parameter:: pi = 3.1415
+	real(kind = dp), parameter:: pi = 3.14159
 	
 	integer, save, dimension(:), allocatable :: hist
 	real(kind = dp), save :: a, b, step
@@ -81,7 +81,7 @@ contains
 				print*, 'D: divisore', (float(points)*npart*nid)
 				!read*, debug
 			end if
-    		write(unit=myunit,fmt=*) r,hist(ibin)/(float(points)*npart*nid)
+    		write(unit=myunit,fmt=*) r,hist(ibin)*2.0/(float(points)*npart*nid)
   		end do
 
 		if ( debug ) print*, 'D: all bin saved'
