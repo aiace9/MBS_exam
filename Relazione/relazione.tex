@@ -10,9 +10,11 @@
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{braket}
-\usepackage{tikz}
-\usetikzlibrary{decorations}
-\usetikzlibrary{er}
+%\usepackage{tikz}
+\usepackage{rotating}
+\usepackage{subfigure}
+%\usetikzlibrary{decorations}
+%\usetikzlibrary{er}
 \graphicspath{{./img/}}
 
 \author{Ruggero Lot \\ ruggero90@gmail.com \\ fisica della materia \\}
@@ -46,7 +48,7 @@
 	\newpage
 	\section{Software per la creazione del Sample} % (fold)
 	\label{sec:software_per_la_creazione_del_sample}
-		Il software ``starting\_positions'' è stato generato allo scopo di poter 
+		Il software ``starting\_positions'' è stato scritto allo scopo di poter 
 		generare un campione sul quale andare poi ad eseguire simulazioni per
 		raccogliere dati sul comportamento delle particelle.\\
 		Il campione generato attraverso questo strumento consiste in un reticolo
@@ -66,27 +68,12 @@
 		scartando eventuali atomi esterni alla scatola o doppi a causa delle pbc.\\
 		Il secondo invece si occupa di portare il sistema, se sotto stress, ad uno 
 		stato di equilibrio. Per risolvere questo problema è stato utilizzato uno 
-		Steepest Descent che viene implementato nel seguente modo:
-		\begin{center}
-			\begin{tikzpicture}
-				[text depth=1pt,
-				every attribute/.style={fill=black!20,draw=black},
-				every entity/.style={fill=blue!20,draw=blue,thick},
-				every relationship/.style={fill=orange!20,draw=orange,thick,aspect=1.5}]
-				
-				\node[entity] (F) at (-3,0) {Rifiuto la mossa} 
-					child {node [entity]{Gradiente} child {node [entity]{step}}};
-				
-				\node[entity] (F) at (-3,0) {Rifiuto la mossa} 
-					child {node [entity]{Gradiente} child {node [entity]{step}}};
-				\node[relationship] (T) at (0,-2) {$\Delta E < \epsilon$}
-					child {node [entity]{Step} child {node [entity]{E = E + 1}}};
-	
-				\node[relationship]	at (0,0) {file.py} 
-					edge (F) 
-					edge (T);
-			\end{tikzpicture}	
-	    \end{center}
+		Steepest Descent che consiste in tre operazioni cicliche: 
+		\begin{itemize}
+			\item calcolare il gradiente della funzione da minimizzare
+			\item scendere lungo il gradiente fino a quando non si incontra un inversione nella pendenza
+			\item verificare che la variazione di energia sia più piccola di un $\epsilon$ desiderato se si uscire se no ricominciare da capo
+		\end{itemize}
 	    Questo metodo non è molto rapido ma ci permette di ottenere comunque
 	    risultati ragionevoli in tempi contenuti.
 	    Nota importante, è stata inserita una normalizzazione del vettore di discesa
@@ -180,6 +167,129 @@
 	\newpage
 	\section{Software per il calcolo del coefficiente di diffusione e per il riscaldamento del campione} % (fold)
 	\label{sec:software_per_il_calcolo_del_coefficiente_di_diffusione_e_per_il_riscaldamento_del_campione}
-		Il software ``evolution_algorithm'' è stato sc
+		Il software ``evolution\_algorithm'' è stato sviluppato per effettuare il
+		calcolo del coefficiente di diffusione dell'atomo nel sito interstiziale
+		del cristallo-campione prodotto con il codice precedente.\\
+		Questo programma si articola in tre grossi algoritmi:
+		\begin{itemize}
+			\item L'implementazione della dinamica molecolare
+			\item L'inserimento del Termostato Anderson per variare la temperatura
+			\item Il calcolo del coefficiente di diffusione
+			\item Il calcolo della pair correlation function
+		\end{itemize}
+		\subsection{Dinamica molecolare} % (fold)
+		\label{sub:dinamica_molecolare}
+			Per il calcolo della dinamica molecolare è stato 
+			applicato un algoritmo di verlet nella sua forma:
+			\begin{equation}
+				r(t+\Delta t)= r(t) +v(t) \Delta t +\frac{f(t)}{2 m} \Delta t^2
+			\end{equation}
+			\begin{equation}
+				v(t+\Delta t) = v(t) + \frac{f(t+\Delta t)+ f(t)}{2 m} \Delta t
+			\end{equation}
+		% subsection dinamica_molecolare (end)
+		\subsection{Coefficiente di diffusione} % (fold)
+		\label{sub:coefficiente_di_diffusione}
+			Visto il tipo di algoritmo implementato e la conseguente più facile 
+			reperibilità dell'informazione sulle velocità delle particelle 
+			piuttosto che il loro scostamento quadratico medio abbiamo preferito
+			implementare il calcolo di questo valore attraverso la relazione di 
+			Green-Kubo invece di quella classica di Einstein. Queste due relazioni
+			sono del tutto equivalenti solo che la Green-Kubo ci permette di 
+			accedere al coefficiente di diffusione attraverso il calcolo della 
+			funzione di autocorrelazione delle velocità, operazione che ci risulta 
+			molto più semplice.\\
+			Partendo da:
+			\begin{align*}
+				2 D & = \lim_{t\rightarrow \infty} \frac{\partial\left < x^2(t)\right>}{\partial t}\\
+				x(t) &= \left(\int_{0}^{t} v_x(t')dt'\right)^2 \\
+				&= 2 \int_{0}^{t} \int_{0}^{t'} <v_x(t')v_x(t''>dt'dt''
+			\end{align*}
+			possiamo dedurre che:
+			\begin{equation}
+				D = \int_{0}^{\infty} d\tau <v_x(\tau)v_x(0)>
+			\end{equation}
+			relazione da noi implementata dopo essere stata scalata in 3 dimensioni.
+		% subsection coefficiente_di_diffusione (end)
+		\subsection*{Pair correaltion function} % (fold)
+		\label{sub:pair_correaltion_function}
+			Il calcolo della $g(r)$ è stato implementato per permettere un analisi
+			qualitativa dello stato del campione.
+		% subsection pair_correaltion_function (end)
+		\subsection{Dati Ottenuti} % (fold)
+		\label{sub:dati_ottenuti_2}
+			le misure sono state effettuate portando prima il campione alla temperatura desiderata e poi facendovi la misura di diffusione a temperatura costante. In
+			Figura \ref{mis1} vediamo, a titolo esemplificativo i dati riguardanti la prima misura a temperatura 0.\\
+			I primi set di valori raccolti erano errati di ordini di grandezza a causa del moto del centro di massa del campione che veniva introdotto durante innalzamento della temperatura. Tale errore è stato risolto introducendo nell'algoritmo la rimozione, dopo il caricamento delle velocità, della velocità del centro di massa.
+			Essendo la velocità del centro di massa, dopo un riscaldamento, di ordini vicini a $\sim 10^{-2}$ questo causa una diminuzione di energia cinetica (e conseguentemente di temperatura) dell'ordine $\sim 10^{-4}$ che abbiamo considerato trascurabile.\\
+			I valori di diffusione raccolti alla fine sono stati:
+			\begin{table}[H]
+				\centering
+			
+				\begin{tabular}{l|c}
+				\hline
+			
+				\hline
+				\textbf{Temperatura} & \textbf{D} \\
+				\hline
+					$0.00$ &	$1.75*10^{-8}$\\
+					$0.02$ &	$5.21*10^{-5}$\\
+					$0.05$ &	$3.76*10^{-3}$\\
+					$0.08$ &	$9.41*10^{-4}$\\
+					$0.15$ &	$1.31*10^{-2}$\\
+					$0.20$ &	$1.45*10^{-2}$\\
+					$0.30$ &	$1.25*10^{-2}$\\
+					$0.35$ &	$1.51*10^{-2}$\\
+					$0.45$ &	$3.34*10^{-2}$\\
+				\hline
+			
+				\hline
+				\end{tabular}
+			\end{table}
+			per una finestra da 10000 campioni (eccetto l'ultimo dove sono stati utilizzati solo mille campioni) di autocorrelazione su 100000 step temporali in un ensamble microcanonico.
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=0.7]{fit.eps}
+				\caption{Tabella precedente con Fit sui dati rilevati. a=$D_0$,b=$Q$}
+				\label{fig:figure1}
+			\end{figure}
+			
+			I Punti raccolti non sono molto compatibili con il fit pertanto si è cercato, senza però ottenere risultati soddisfacenti di migliorare la raccolta dei punti, provando ad allargare e rimpicciolire la finestra di autocorrelazione, aumentando i punti di analisi, provando a fare lo studio su ensamble differenti. Si sono visti benefici al ridursi della finestra di autocorrelazione con conseguente aumento di punti su cui veniva fatta la media di ciascuna autocorrelazione, sfortunatamente siamo giunti a questa conclusione troppo tardi; .\\
+			Visto il parziale insuccesso la nostra analisi si è fermata qui.
+
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=0.7]{gr_0_45.eps}
+				\caption{funzione di autocorrelazione a $T^*=0.45$, permane lo stato solido ma stiamo andando verso uno stato liquido, è coerente con l'aumento del coefficiente di diffusione}
+				\label{fig:gr045}
+			\end{figure}
+
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=0.7]{Energy_evolution.eps}
+				\caption{Evoluzione dell'energia totale durante un aumento di temperatura, si riconoscono i tipici scalini dovuti alle interazioni delle molecole con il termostato}
+			\end{figure}
+
+
+				\begin{sidewaysfigure}
+					\label{mis1}
+					\centering%
+					\subfigure[Energia durante la simulazione, oscillazioni sulla decima cifra decimale]%
+					{\includegraphics[scale=0.5]{Energy_evolution_0.eps}}
+					\qquad\qquad
+					\subfigure[picchi a 1.12, 1.58...]%
+					{\includegraphics[scale=0.5]{gr_0.eps}}\qquad\qquad
+					\subfigure[temperatura costante durante la presa dati]%
+					{\includegraphics[scale=0.5]{Temperature_evolution_0.eps}}
+					\caption{Questi sono i dati relativi alla prima misura presa a T=0 per il campione composto da 108+1 particelle. Si nota in particolare la g(r) molto piccata che sta ad indicare un quasi perfetto stato solido e la temperatura che ha un evoluzione armonica dovuta probabilmente al potenziale scelto e ai piccoli scostamenti permessi alle molecole}
+				\end{sidewaysfigure}
+			% paragraph prima_misura_t_0 (end)
+		% subsection dati_ottenuti (end)
 	% section software_per_il_calcolo_del_coefficiente_di_diffusione_e_per_il_riscaldamento_del_campione (end)
+	\newpage
+	\section{Conclusioni} % (fold)
+	\label{sec:conclusioni}
+	Il primo algoritmo ha prodotto i risultati desiderati creando campioni coerenti con quanto desiderato ed e minimizzando in maniera opportuna l'energia attraverso uno Steepest Descent; è possibile fare affermazioni qualitative sul risultato osservando come l'energia raggiunta dopo il rilassamento sia paragonabile a quella di campione senza sito interstiziale.\\
+	Il secondo algoritmo, nonostante l'apparente correttezza teorica, non è stato capace di produrre i risultati desiderati. Qualitativamente i valori ottenuti seguono un andamento corretto ma quantitativamente i fit si discostano troppo dai valori misurati. I tentativi di miglioramento hanno dato risultati diminuendo la dimensione della finestra di autocorrelazione ovvero mediando D su più misure.
+	% section conclusioni (end)
 \end{document}
